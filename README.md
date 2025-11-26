@@ -10,6 +10,7 @@ A Dockerized Flask application with Jinja2 templates that provides a signup form
 - Input validation for username, email, and password
 - Responsive UI with Jinja2 templates
 - Docker containerization with docker-compose
+- Production-ready with Gunicorn WSGI server
 
 ## Prerequisites
 
@@ -24,19 +25,31 @@ A Dockerized Flask application with Jinja2 templates that provides a signup form
    cd appsec-signup
    ```
 
-2. Start the application:
+2. Create a `.env` file with required environment variables:
+   ```bash
+   SECRET_KEY=your-secure-random-secret-key
+   POSTGRES_USER=postgres
+   POSTGRES_PASSWORD=your-secure-database-password
+   POSTGRES_DB=signup_db
+   ```
+
+3. Start the application:
    ```bash
    docker compose up -d
    ```
 
-3. Open your browser and navigate to `http://localhost:5000`
+4. Open your browser and navigate to `http://localhost:5000`
 
 ## Configuration
 
-Environment variables can be set in docker-compose.yml or via a `.env` file:
+Environment variables (required in `.env` file or environment):
 
-- `DATABASE_URL`: PostgreSQL connection string (default: `postgresql://postgres:postgres@db:5432/signup_db`)
-- `SECRET_KEY`: Flask secret key for session management
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `SECRET_KEY` | Flask secret key for session management | Yes |
+| `POSTGRES_USER` | PostgreSQL username | No (default: postgres) |
+| `POSTGRES_PASSWORD` | PostgreSQL password | No (default: postgres) |
+| `POSTGRES_DB` | PostgreSQL database name | No (default: signup_db) |
 
 ## Project Structure
 
@@ -69,14 +82,15 @@ To run the application locally without Docker:
    pip install -r requirements.txt
    ```
 
-3. Set the database URL:
+3. Set environment variables:
    ```bash
    export DATABASE_URL="postgresql://user:password@localhost:5432/signup_db"
+   export SECRET_KEY="your-secret-key"
    ```
 
 4. Run the application:
    ```bash
-   python app.py
+   gunicorn --bind 0.0.0.0:5000 app:app
    ```
 
 ## Security Features
@@ -85,3 +99,5 @@ To run the application locally without Docker:
 - Input validation for all form fields
 - SQL injection prevention via SQLAlchemy ORM
 - XSS protection via Jinja2's auto-escaping
+- Required SECRET_KEY environment variable (no insecure defaults)
+- Production WSGI server (Gunicorn)
