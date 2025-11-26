@@ -213,8 +213,8 @@ def signup():
             activation_url = get_activation_url(raw_token)
 
             # In production, send email with activation link
-            # For now, we'll show the URL in the success message (development only)
-            app.logger.info(f"Activation URL for {email}: {activation_url}")
+            # The activation_url should be sent via a secure email service
+            # For development, the URL can be retrieved from the database
 
             return redirect(url_for("success"))
         except IntegrityError:

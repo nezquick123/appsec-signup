@@ -1,3 +1,4 @@
+import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
@@ -99,8 +100,11 @@ class ActivationToken(db.Model):
 
     @staticmethod
     def find_by_token(raw_token):
-        """Find activation token by raw token value."""
+        """Find activation token by raw token value using timing-safe comparison."""
         token_hash = sha256(raw_token.encode()).hexdigest()
-        return ActivationToken.query.filter_by(
-            activation_token=token_hash
-        ).first()
+        # Retrieve all tokens and use timing-safe comparison to prevent timing attacks
+        tokens = ActivationToken.query.all()
+        for token in tokens:
+            if secrets.compare_digest(token.activation_token, token_hash):
+                return token
+        return None
