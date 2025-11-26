@@ -6,6 +6,14 @@ services:
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-signup_db}
       - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set}
+      - PASSWORD_PEPPER=${PASSWORD_PEPPER:-}
+      - RECAPTCHA_SITE_KEY=${RECAPTCHA_SITE_KEY:-}
+      - RECAPTCHA_SECRET_KEY=${RECAPTCHA_SECRET_KEY:-}
+      - EMAIL_DOMAIN_WHITELIST=${EMAIL_DOMAIN_WHITELIST:-}
+      - EMAIL_DOMAIN_BLACKLIST=${EMAIL_DOMAIN_BLACKLIST:-tempmail.com,throwaway.com,mailinator.com}
+      - ACTIVATION_TOKEN_EXPIRY_HOURS=${ACTIVATION_TOKEN_EXPIRY_HOURS:-24}
+      - APP_URL=${APP_URL:-http://localhost:5000}
+      - FORCE_HTTPS=${FORCE_HTTPS:-false}
     depends_on:
       db:
         condition: service_healthy

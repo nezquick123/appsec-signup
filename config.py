@@ -12,3 +12,30 @@ class Config:
         "postgresql://postgres:postgres@db:5432/signup_db"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+
+    # Password pepper for additional security
+    PASSWORD_PEPPER = os.environ.get("PASSWORD_PEPPER", "")
+
+    # reCAPTCHA configuration
+    RECAPTCHA_SITE_KEY = os.environ.get("RECAPTCHA_SITE_KEY", "")
+    RECAPTCHA_SECRET_KEY = os.environ.get("RECAPTCHA_SECRET_KEY", "")
+
+    # Email domain restrictions (comma-separated)
+    # Whitelist: Only allow these domains (if set)
+    EMAIL_DOMAIN_WHITELIST = os.environ.get("EMAIL_DOMAIN_WHITELIST", "")
+    # Blacklist: Block these domains
+    EMAIL_DOMAIN_BLACKLIST = os.environ.get(
+        "EMAIL_DOMAIN_BLACKLIST",
+        "tempmail.com,throwaway.com,mailinator.com"
+    )
+
+    # Activation token expiration (in hours)
+    ACTIVATION_TOKEN_EXPIRY_HOURS = int(
+        os.environ.get("ACTIVATION_TOKEN_EXPIRY_HOURS", "24")
+    )
+
+    # Application URL for activation links
+    APP_URL = os.environ.get("APP_URL", "http://localhost:5000")
+
+    # HTTPS enforcement
+    FORCE_HTTPS = os.environ.get("FORCE_HTTPS", "false").lower() == "true"
