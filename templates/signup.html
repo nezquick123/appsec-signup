@@ -25,7 +25,7 @@
             border-radius: 10px;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
             width: 100%;
-            max-width: 400px;
+            max-width: 450px;
         }
         h1 {
             text-align: center;
@@ -44,7 +44,8 @@
         }
         input[type="text"],
         input[type="email"],
-        input[type="password"] {
+        input[type="password"],
+        input[type="tel"] {
             width: 100%;
             padding: 12px 15px;
             border: 2px solid #e1e1e1;
@@ -55,6 +56,11 @@
         input:focus {
             outline: none;
             border-color: #667eea;
+        }
+        .optional {
+            color: #888;
+            font-size: 12px;
+            font-weight: normal;
         }
         button {
             width: 100%;
@@ -71,6 +77,11 @@
         button:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
         }
         .flash-messages {
             margin-bottom: 20px;
@@ -90,7 +101,68 @@
             color: #059669;
             border: 1px solid #a7f3d0;
         }
+        /* Password strength meter */
+        .password-strength {
+            margin-top: 8px;
+        }
+        .strength-bar {
+            height: 4px;
+            background-color: #e1e1e1;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        .strength-fill {
+            height: 100%;
+            transition: width 0.3s, background-color 0.3s;
+            width: 0%;
+        }
+        .strength-text {
+            font-size: 12px;
+            margin-top: 4px;
+            color: #666;
+        }
+        .strength-weak { background-color: #ef4444; }
+        .strength-fair { background-color: #f97316; }
+        .strength-good { background-color: #eab308; }
+        .strength-strong { background-color: #22c55e; }
+        /* Password requirements list */
+        .password-requirements {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+            padding-left: 0;
+            list-style: none;
+        }
+        .password-requirements li {
+            padding: 2px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        .password-requirements li::before {
+            content: "✗";
+            position: absolute;
+            left: 0;
+            color: #ef4444;
+        }
+        .password-requirements li.valid::before {
+            content: "✓";
+            color: #22c55e;
+        }
+        .field-hint {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+        /* reCAPTCHA styling */
+        .recaptcha-container {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+        }
     </style>
+    {% if recaptcha_site_key %}
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    {% endif %}
 </head>
 <body>
     <div class="container">
@@ -106,7 +178,7 @@
             {% endif %}
         {% endwith %}
         
-        <form method="POST" action="{{ url_for('signup') }}">
+        <form method="POST" action="{{ url_for('signup') }}" id="signupForm">
             <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" 
@@ -114,23 +186,134 @@
                        required minlength="3" maxlength="80"
                        pattern="[a-zA-Z0-9_]+"
                        title="Username can only contain letters, numbers, and underscores">
+                <p class="field-hint">3-80 characters, letters, numbers, and underscores only</p>
             </div>
             
             <div class="form-group">
                 <label for="email">Email</label>
                 <input type="email" id="email" name="email" 
                        value="{{ email|default('', true) }}" 
-                       required maxlength="120">
+                       required maxlength="255">
+            </div>
+            
+            <div class="form-group">
+                <label for="phone_number">Phone Number <span class="optional">(optional)</span></label>
+                <input type="tel" id="phone_number" name="phone_number" 
+                       value="{{ phone_number|default('', true) }}" 
+                       maxlength="50"
+                       pattern="[\+]?[(]?[0-9]{1,3}[)]?[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,9}"
+                       title="Enter a valid phone number (e.g., +1234567890 or 123-456-7890)">
+                <p class="field-hint">e.g., +1234567890 or 123-456-7890</p>
             </div>
             
             <div class="form-group">
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" 
                        required minlength="8" maxlength="128">
+                <div class="password-strength">
+                    <div class="strength-bar">
+                        <div class="strength-fill" id="strengthFill"></div>
+                    </div>
+                    <div class="strength-text" id="strengthText">Enter a password</div>
+                </div>
+                <ul class="password-requirements" id="requirements">
+                    <li id="req-length">At least 8 characters</li>
+                    <li id="req-lower">At least one lowercase letter</li>
+                    <li id="req-upper">At least one uppercase letter</li>
+                    <li id="req-digit">At least one digit</li>
+                    <li id="req-special">At least one special character (!@#$%^&*(),.?":{}|&lt;&gt;)</li>
+                </ul>
             </div>
             
-            <button type="submit">Sign Up</button>
+            {% if recaptcha_site_key %}
+            <div class="recaptcha-container">
+                <div class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}"></div>
+            </div>
+            {% endif %}
+            
+            <button type="submit" id="submitBtn">Sign Up</button>
         </form>
     </div>
+
+    <script>
+        const passwordInput = document.getElementById('password');
+        const strengthFill = document.getElementById('strengthFill');
+        const strengthText = document.getElementById('strengthText');
+        const requirements = {
+            length: document.getElementById('req-length'),
+            lower: document.getElementById('req-lower'),
+            upper: document.getElementById('req-upper'),
+            digit: document.getElementById('req-digit'),
+            special: document.getElementById('req-special')
+        };
+
+        function checkPasswordStrength(password) {
+            let score = 0;
+            const checks = {
+                length: password.length >= 8,
+                lower: /[a-z]/.test(password),
+                upper: /[A-Z]/.test(password),
+                digit: /[0-9]/.test(password),
+                special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+            };
+
+            // Update requirement indicators
+            for (const [key, element] of Object.entries(requirements)) {
+                if (checks[key]) {
+                    element.classList.add('valid');
+                    score++;
+                } else {
+                    element.classList.remove('valid');
+                }
+            }
+
+            return { score, checks };
+        }
+
+        function updateStrengthMeter(score) {
+            const percentage = (score / 5) * 100;
+            strengthFill.style.width = percentage + '%';
+            
+            strengthFill.className = 'strength-fill';
+            if (score === 0) {
+                strengthText.textContent = 'Enter a password';
+                strengthFill.style.width = '0%';
+            } else if (score <= 2) {
+                strengthFill.classList.add('strength-weak');
+                strengthText.textContent = 'Weak password';
+            } else if (score === 3) {
+                strengthFill.classList.add('strength-fair');
+                strengthText.textContent = 'Fair password';
+            } else if (score === 4) {
+                strengthFill.classList.add('strength-good');
+                strengthText.textContent = 'Good password';
+            } else {
+                strengthFill.classList.add('strength-strong');
+                strengthText.textContent = 'Strong password';
+            }
+        }
+
+        passwordInput.addEventListener('input', function() {
+            const { score } = checkPasswordStrength(this.value);
+            updateStrengthMeter(score);
+        });
+
+        // Form validation
+        document.getElementById('signupForm').addEventListener('submit', function(e) {
+            const password = passwordInput.value;
+            const { score, checks } = checkPasswordStrength(password);
+            
+            if (score < 5) {
+                e.preventDefault();
+                let missing = [];
+                if (!checks.length) missing.push('at least 8 characters');
+                if (!checks.lower) missing.push('a lowercase letter');
+                if (!checks.upper) missing.push('an uppercase letter');
+                if (!checks.digit) missing.push('a digit');
+                if (!checks.special) missing.push('a special character');
+                alert('Password must contain: ' + missing.join(', '));
+            }
+        });
+    </script>
 </body>
 </html>
