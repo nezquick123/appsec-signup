@@ -9,7 +9,12 @@ from flask import current_app
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
-ph = PasswordHasher()
+ph = PasswordHasher(
+    time_cost=2,
+    memory_cost=32 * 1024,   # 32 MiB
+    parallelism=2
+)
+
 
 
 def hash_password(password: str) -> str:

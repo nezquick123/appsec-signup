@@ -22,4 +22,4 @@ USER appuser
 
 EXPOSE 5000
 
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+CMD ["gunicorn","-w", "4","--log-level", "info", "--bind", "0.0.0.0:5000", "app:app"]

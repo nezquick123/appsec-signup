@@ -1,6 +1,7 @@
 services:
   web:
     build: .
+    mem_limit: 2g
     ports:
       - "5000:5000"
     environment:

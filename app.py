@@ -5,6 +5,7 @@ from flask import Flask, render_template, request, flash, redirect, url_for
 from flask_talisman import Talisman
 from email_validator import validate_email, EmailNotValidError
 from sqlalchemy.exc import IntegrityError
+import logging
 
 from config import Config
 from models import db, User, ActivationToken
@@ -16,6 +17,13 @@ from google.cloud.recaptchaenterprise_v1 import Assessment
 app = Flask(__name__)
 app.config.from_object(Config)
 db.init_app(app)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
+
+logger = logging.getLogger(__name__)
 
 # HTTPS enforcement using Flask-Talisman (configurable via FORCE_HTTPS)
 if app.config.get("FORCE_HTTPS"):
@@ -253,7 +261,7 @@ def signup():
             # Generate activation token
             raw_token = generate_activation_token(email)
             activation_url = get_activation_url(raw_token)
-            print(f"Activation token: {activation_url}")
+            logger.info(f"Activation token: {activation_url}")
             # In production, send email with activation link
             # The activation_url should be sent via a secure email service
             # For development, the URL can be retrieved from the database
