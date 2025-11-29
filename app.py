@@ -9,6 +9,10 @@ from sqlalchemy.exc import IntegrityError
 from config import Config
 from models import db, User, ActivationToken
 
+from google.cloud import recaptchaenterprise_v1
+from google.cloud.recaptchaenterprise_v1 import Assessment
+
+
 app = Flask(__name__)
 app.config.from_object(Config)
 db.init_app(app)
@@ -85,30 +89,67 @@ def validate_user_email(email):
         return False, str(e)
 
 
-def verify_recaptcha(recaptcha_response):
-    """Verify reCAPTCHA response with Google's API."""
-    secret_key = app.config.get("RECAPTCHA_SECRET_KEY", "")
-    if not secret_key:
-        # If reCAPTCHA is not configured, skip verification
-        return True
+# def verify_recaptcha(recaptcha_response):
+#     """Verify reCAPTCHA response with Google's API."""
+#     secret_key = app.config.get("RECAPTCHA_SECRET_KEY", "")
+#     if not secret_key:
+#         # If reCAPTCHA is not configured, skip verification
+#         return True
 
-    if not recaptcha_response:
+#     if not recaptcha_response:
+#         return False
+
+#     try:
+#         response = requests.post(
+#             "https://www.google.com/recaptcha/api/siteverify",
+#             data={
+#                 "secret": secret_key,
+#                 "response": recaptcha_response
+#             },
+#             timeout=5
+#         )
+#         result = response.json()
+#         return result.get("success", False)
+#     except requests.RequestException:
+#         # If verification service is unavailable, fail closed
+#         return False
+
+def verify_recaptcha(recaptcha_token):
+    """Verify reCAPTCHA Enterprise token."""
+
+    project_id = app.config.get("RECAPTCHA_PROJECT_ID", "")
+    site_key = app.config.get("RECAPTCHA_SITE_KEY", "")
+    expected_action = "signup"
+
+    if not project_id or not site_key:
+        return True  # Skip if not configured
+
+    client = recaptchaenterprise_v1.RecaptchaEnterpriseServiceClient()
+
+    event = recaptchaenterprise_v1.Event(
+        site_key=site_key,
+        token=recaptcha_token
+    )
+
+    assessment = recaptchaenterprise_v1.Assessment(event=event)
+
+    request = recaptchaenterprise_v1.CreateAssessmentRequest(
+        parent=f"projects/{project_id}",
+        assessment=assessment
+    )
+
+    response = client.create_assessment(request)
+
+    # Token invalid?
+    if not response.token_properties.valid:
         return False
 
-    try:
-        response = requests.post(
-            "https://www.google.com/recaptcha/api/siteverify",
-            data={
-                "secret": secret_key,
-                "response": recaptcha_response
-            },
-            timeout=5
-        )
-        result = response.json()
-        return result.get("success", False)
-    except requests.RequestException:
-        # If verification service is unavailable, fail closed
+    # Action mismatch?
+    if response.token_properties.action != expected_action:
         return False
+
+    # Recommended: require risk score above threshold
+    return response.risk_analysis.score >= 0.5
 
 
 def generate_activation_token(email):
@@ -136,7 +177,8 @@ def signup():
         email = request.form.get("email", "").strip()
         password = request.form.get("password", "")
         phone_number = request.form.get("phone_number", "").strip() or None
-        recaptcha_response = request.form.get("g-recaptcha-response", "")
+        #recaptcha_response = request.form.get("g-recaptcha-response", "")
+        recaptcha_response = request.form.get("recaptcha_token", "")
 
         # Verify reCAPTCHA
         if recaptcha_site_key and not verify_recaptcha(recaptcha_response):
@@ -211,7 +253,7 @@ def signup():
             # Generate activation token
             raw_token = generate_activation_token(email)
             activation_url = get_activation_url(raw_token)
-
+            print(f"Activation token: {activation_url}")
             # In production, send email with activation link
             # The activation_url should be sent via a secure email service
             # For development, the URL can be retrieved from the database
