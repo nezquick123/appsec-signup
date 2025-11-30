@@ -20,6 +20,9 @@ COPY . .
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
+
+COPY application_default_credentials.* /home/appuser/.config/gcloud/
+
 EXPOSE 5000
 
 CMD ["gunicorn","-w", "4","--log-level", "info", "--bind", "0.0.0.0:5000", "app:app"]

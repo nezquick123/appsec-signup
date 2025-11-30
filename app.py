@@ -127,7 +127,7 @@ def verify_recaptcha(recaptcha_token):
 
     project_id = app.config.get("RECAPTCHA_PROJECT_ID", "")
     site_key = app.config.get("RECAPTCHA_SITE_KEY", "")
-    expected_action = "signup"
+    expected_action = "submit"
 
     if not project_id or not site_key:
         return True  # Skip if not configured
@@ -150,13 +150,15 @@ def verify_recaptcha(recaptcha_token):
 
     # Token invalid?
     if not response.token_properties.valid:
+        logger.warning(f"reCAPTCHA invalid reason: {response.token_properties.invalid_reason}")
         return False
 
     # Action mismatch?
     if response.token_properties.action != expected_action:
+        logger.warning(f"reCAPTCHA action mismatch: expected {expected_action}, got {response.token_properties.action}")
         return False
 
-    # Recommended: require risk score above threshold
+    logger.info(f"reCAPTCHA risk score: {response.risk_analysis.score}")
     return response.risk_analysis.score >= 0.5
 
 
@@ -185,8 +187,8 @@ def signup():
         email = request.form.get("email", "").strip()
         password = request.form.get("password", "")
         phone_number = request.form.get("phone_number", "").strip() or None
-        #recaptcha_response = request.form.get("g-recaptcha-response", "")
-        recaptcha_response = request.form.get("recaptcha_token", "")
+        recaptcha_response = request.form.get("g-recaptcha-response", "")
+        #recaptcha_response = request.form.get("recaptcha_token", "")
 
         # Verify reCAPTCHA
         if recaptcha_site_key and not verify_recaptcha(recaptcha_response):

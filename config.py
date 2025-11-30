@@ -40,3 +40,5 @@ class Config:
 
     # HTTPS enforcement
     FORCE_HTTPS = os.environ.get("FORCE_HTTPS", "false").lower() == "true"
+
+    RECAPTCHA_PROJECT_ID = os.environ.get("RECAPTCHA_PROJECT_ID", "")
