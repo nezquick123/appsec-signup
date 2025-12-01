@@ -127,7 +127,7 @@ def verify_recaptcha(recaptcha_token):
 
     project_id = app.config.get("RECAPTCHA_PROJECT_ID", "")
     site_key = app.config.get("RECAPTCHA_SITE_KEY", "")
-    expected_action = "submit"
+    expected_action = "LOGIN"
 
     if not project_id or not site_key:
         return True  # Skip if not configured
