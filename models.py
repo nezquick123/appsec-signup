@@ -105,11 +105,7 @@ class ActivationToken(db.Model):
 
     @staticmethod
     def find_by_token(raw_token):
-        """Find activation token by raw token value using timing-safe comparison."""
+        """Find activation token by raw token value."""
         token_hash = sha256(raw_token.encode()).hexdigest()
-        # Retrieve all tokens and use timing-safe comparison to prevent timing attacks
-        tokens = ActivationToken.query.all()
-        for token in tokens:
-            if secrets.compare_digest(token.activation_token, token_hash):
-                return token
-        return None
+        
+        return ActivationToken.query.filter_by(activation_token=token_hash).first()

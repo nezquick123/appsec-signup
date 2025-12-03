@@ -14,7 +14,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #667eea;
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -72,7 +72,8 @@
             font-weight: normal;
         }
 
-        button {
+        button,
+        input[type="submit"] {
             width: 100%;
             padding: 14px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -85,12 +86,14 @@
             transition: transform 0.2s, box-shadow 0.2s;
         }
 
-        button:hover {
+        button:hover,
+        input[type="submit"]:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
         }
 
-        button:disabled {
+        button:disabled,
+        input[type="submit"]:disabled {
             opacity: 0.7;
             cursor: not-allowed;
             transform: none;
@@ -199,8 +202,7 @@
         }
     </style>
     {% if recaptcha_site_key %}
-    <script
-        src="https://www.google.com/recaptcha/enterprise.js?render=6Lcv9hgsAAAAAHbQfGi3Xpdme-IKwwXggqIjTcaJ"></script>
+    <script src="https://www.google.com/recaptcha/enterprise.js" async defer></script>
     {% endif %}
 </head>
 
@@ -235,10 +237,10 @@
 
             <div class="form-group">
                 <label for="phone_number">Phone Number <span class="optional">(optional)</span></label>
-                <input type="tel" id="phone_number" name="phone_number" value="{{ phone_number|default('', true) }}"
-                    maxlength="50"
-                    pattern="[\+]?[(]?[0-9]{1,3}[)]?[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,9}"
+                <input type="tel" id="phone_number" name="phone_number" maxlength="50"
+                    pattern="[\+]?[(]?[0-9]{1,3}[)]?[ .\-]?[0-9]{1,4}[ .\-]?[0-9]{1,4}[ .\-]?[0-9]{1,9}"
                     title="Enter a valid phone number (e.g., +1234567890 or 123-456-7890)">
+
                 <p class="field-hint">e.g., +1234567890 or 123-456-7890</p>
             </div>
 
@@ -260,7 +262,7 @@
                 </ul>
             </div>
 
-            <div class ="form-group">
+            <div class="form-group">
                 <label for="confirm_password">Confirm Password</label>
                 <input type="password" id="confirm_password" name="confirm_password" required minlength="8"
                     maxlength="128">
@@ -269,42 +271,128 @@
 
 
             {% if recaptcha_site_key %}
-            <button class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}" data-callback='onSubmit'
-                data-action='submit'>
-                Submit
-            </button>
-
-            <script>
-                function onSubmit(token) {
-                    document.getElementById("signupForm").submit();
-                }
-            </script>
-
+            <div class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}" data-action="LOGIN"
+                data-callback="onRecaptchaSuccess" data-expired-callback="onRecaptchaExpired"></div>
+            <br />
+            <input type="submit" id="submitBtn" value="Submit" disabled>
             {% else %}
-            <button type="submit" id="submitBtn">Sign Up</button>
+            <button type="submit" id="submitBtn" disabled>Sign Up</button>
             {% endif %}
 
 
         </form>
     </div>
 
-    <!-- show field hind if passwords arent matching -->
     <script>
-        const passwordField = document.getElementById('password');
-        const confirmPasswordField = document.getElementById('confirm_password');
-        const confirmPasswHint = document.getElementById('confirm-passw');
+        const username = document.getElementById("username");
+        const email = document.getElementById("email");
+        const password = document.getElementById("password");
+        const confirmPassword = document.getElementById("confirm_password");
+        const submitBtn = document.getElementById("submitBtn");
 
-        function validatePasswordMatch() {
-            if (confirmPasswordField.value && passwordField.value !== confirmPasswordField.value) {
-               confirmPasswHint.style.display = 'block';
+        const recaptchaContainer = document.querySelector('.g-recaptcha');
+        const recaptchaEnabled = !!recaptchaContainer;
+
+        // This variable will hold the token once the user solves the captcha
+        let currentRecaptchaToken = null;
+
+        function allRequiredFieldsFilled() {
+            return (
+                username.value.trim().length >= 3 &&
+                email.value.trim().length > 0 &&
+                password.value.trim().length >= 8 &&
+                confirmPassword.value.trim().length >= 8
+            );
+        }
+
+        function passwordsMatch() {
+            return password.value === confirmPassword.value;
+        }
+
+        function passwordStrongEnough() {
+            const checks = {
+                length: password.value.length >= 8,
+                lower: /[a-z]/.test(password.value),
+                upper: /[A-Z]/.test(password.value),
+                digit: /[0-9]/.test(password.value),
+                special: /[!@#$%^&*(),.?":{}|<>]/.test(password.value)
+            };
+            return Object.values(checks).every(Boolean);
+        }
+
+        // --- reCAPTCHA Callbacks ---
+
+        // Called automatically by Google when the captcha is solved
+        window.onRecaptchaSuccess = function (token) {
+            currentRecaptchaToken = token;
+            updateSubmitButton();
+        };
+
+        // Called if the token expires (e.g. user waited too long)
+        window.onRecaptchaExpired = function () {
+            currentRecaptchaToken = null;
+            updateSubmitButton();
+        };
+
+        function updateSubmitButton() {
+            if (!submitBtn) return;
+
+            const fieldsValid = (
+                allRequiredFieldsFilled() &&
+                passwordsMatch() &&
+                passwordStrongEnough()
+            );
+
+            // If recaptcha is enabled, we MUST have a token to enable the button
+            if (recaptchaEnabled) {
+                if (fieldsValid && currentRecaptchaToken) {
+                    submitBtn.disabled = false;
+                } else {
+                    submitBtn.disabled = true;
+                }
             } else {
-                confirmPasswHint.style.display = 'none';
+                // No recaptcha, just check fields
+                submitBtn.disabled = !fieldsValid;
             }
         }
 
-        passwordField.addEventListener('input', validatePasswordMatch);
-        confirmPasswordField.addEventListener('input', validatePasswordMatch);
+        // Event listeners for fields
+        username.addEventListener("input", updateSubmitButton);
+        email.addEventListener("input", updateSubmitButton);
+        password.addEventListener("input", updateSubmitButton);
+        confirmPassword.addEventListener("input", updateSubmitButton);
+
+        // Ensure the token is submitted with the form
+        document.getElementById('signupForm').addEventListener('submit', function (e) {
+            if (recaptchaEnabled) {
+                // Ensure the hidden input exists and has the token
+                let hidden = this.querySelector('input[name="g-recaptcha-response"]');
+                if (!hidden) {
+                    hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.name = 'g-recaptcha-response';
+                    this.appendChild(hidden);
+                }
+
+                // If we rely on the widget, get the response directly or use our cached variable
+                const response = (typeof grecaptcha !== 'undefined' && grecaptcha.getResponse)
+                    ? grecaptcha.getResponse()
+                    : currentRecaptchaToken;
+
+                hidden.value = response;
+
+                if (!hidden.value) {
+                    e.preventDefault();
+                    alert("Please complete the CAPTCHA.");
+                }
+            }
+        });
+
+        // Initialize state on load
+        document.addEventListener('DOMContentLoaded', updateSubmitButton);
     </script>
+
+
     <script>
         const passwordInput = document.getElementById('password');
         const strengthFill = document.getElementById('strengthFill');

@@ -1,6 +1,6 @@
 import re
 
-import requests
+
 from flask import Flask, render_template, request, flash, redirect, url_for
 from flask_talisman import Talisman
 from email_validator import validate_email, EmailNotValidError
@@ -24,15 +24,6 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
-
-# HTTPS enforcement using Flask-Talisman (configurable via FORCE_HTTPS)
-if app.config.get("FORCE_HTTPS"):
-    Talisman(
-        app,
-        force_https=True,
-        strict_transport_security=True,
-        strict_transport_security_max_age=31536000
-    )
 
 
 def validate_username(username):
@@ -66,6 +57,8 @@ def validate_phone_number(phone):
     if not phone:
         return True, ""  # Phone is optional
     # Allow common phone formats: +1234567890, 123-456-7890, (123) 456-7890
+    if len(phone) > 20:
+        return False, "Phone number is too long."
     phone_pattern = r"^[\+]?[(]?[0-9]{1,3}[)]?[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,9}$"
     if not re.match(phone_pattern, phone):
         return False, "Please enter a valid phone number."
@@ -124,6 +117,9 @@ def validate_user_email(email):
 
 def verify_recaptcha(recaptcha_token):
     """Verify reCAPTCHA Enterprise token."""
+    # If there is no token provided from the client, fail verification
+    if not recaptcha_token:
+        return False
 
     project_id = app.config.get("RECAPTCHA_PROJECT_ID", "")
     site_key = app.config.get("RECAPTCHA_SITE_KEY", "")
@@ -301,7 +297,13 @@ def activate():
 
     if activation_token.is_expired():
         # Delete expired token
+        user = db.session.get(User, activation_token.email)
+        
+        
         db.session.delete(activation_token)
+        if user and not user.is_activated:
+            db.session.delete(user) 
+            
         db.session.commit()
         flash("Activation link has expired. Please request a new activation email.", "error")
         return render_template("activation.html", success=False)

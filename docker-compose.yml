@@ -1,7 +1,7 @@
 services:
   web:
     build: .
-    mem_limit: 2g
+    mem_limit: 4g
     ports:
       - "5000:5000"
     environment:
@@ -16,6 +16,20 @@ services:
       - APP_URL=${APP_URL:-http://localhost:5000}
       - FORCE_HTTPS=${FORCE_HTTPS:-false}
       - RECAPTCHA_PROJECT_ID=${RECAPTCHA_PROJECT_ID:-}
+    volumes:
+      - ./localhost+1.pem:/app/certs/cert.pem:ro
+      - ./localhost+1-key.pem:/app/certs/key.pem:ro
+    command: >
+      gunicorn 
+      --certfile=/app/certs/cert.pem 
+      --keyfile=/app/certs/key.pem 
+      -k gthread 
+      -w 2 
+      --threads 4 
+      --timeout 60
+      --log-level info 
+      --bind 0.0.0.0:5000 
+      app:app
     depends_on:
       db:
         condition: service_healthy

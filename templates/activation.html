@@ -12,7 +12,7 @@
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #667eea;
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -96,18 +96,10 @@
 <body>
     <div class="container">
         {% if success %}
-        <div class="icon success">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
-            </svg>
-        </div>
+
         <h1>Account Activated!</h1>
         {% else %}
-        <div class="icon error">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
-            </svg>
-        </div>
+
         <h1>Activation Failed</h1>
         {% endif %}
         
@@ -124,7 +116,7 @@
         {% if success %}
         <p>Your account is now active. You can now log in with your credentials.</p>
         {% else %}
-        <p>Please try again or request a new activation email.</p>
+        <p>Invalid or expired activation token. Please try again.</p>
         {% endif %}
         
         <a href="{{ url_for('signup') }}">{% if success %}Go to Login{% else %}Back to Signup{% endif %}</a>

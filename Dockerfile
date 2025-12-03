@@ -25,4 +25,5 @@ COPY application_default_credentials.* /home/appuser/.config/gcloud/
 
 EXPOSE 5000
 
-CMD ["gunicorn","-w", "4","--log-level", "info", "--bind", "0.0.0.0:5000", "app:app"]
+
+CMD ["gunicorn", "-k", "gevent", "-w", "2", "--log-level", "info", "--bind", "0.0.0.0:5000", "app:app"]
