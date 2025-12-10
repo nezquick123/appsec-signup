@@ -95,32 +95,6 @@ def validate_user_email(email):
     except EmailNotValidError as e:
         return False, str(e)
 
-
-# def verify_recaptcha(recaptcha_response):
-#     """Verify reCAPTCHA response with Google's API."""
-#     secret_key = app.config.get("RECAPTCHA_SECRET_KEY", "")
-#     if not secret_key:
-#         # If reCAPTCHA is not configured, skip verification
-#         return True
-
-#     if not recaptcha_response:
-#         return False
-
-#     try:
-#         response = requests.post(
-#             "https://www.google.com/recaptcha/api/siteverify",
-#             data={
-#                 "secret": secret_key,
-#                 "response": recaptcha_response
-#             },
-#             timeout=5
-#         )
-#         result = response.json()
-#         return result.get("success", False)
-#     except requests.RequestException:
-#         # If verification service is unavailable, fail closed
-#         return False
-
 def verify_recaptcha(recaptcha_token):
     """Verify reCAPTCHA Enterprise token."""
     # If there is no token provided from the client, fail verification
