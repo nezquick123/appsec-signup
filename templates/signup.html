@@ -48,6 +48,12 @@
             color: #555;
             font-weight: 500;
         }
+        p {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
 
         input[type="text"],
         input[type="email"],
@@ -278,9 +284,11 @@
             {% else %}
             <button type="submit" id="submitBtn" disabled>Sign Up</button>
             {% endif %}
-
-
         </form>
+
+        <div class="footer-links">
+            <p>Already have an account? <a href="{{ url_for('login') }}">Log In</a></p>
+        </div>
     </div>
 
     <script>
