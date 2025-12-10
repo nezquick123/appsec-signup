@@ -13,6 +13,12 @@ from models import db, User, ActivationToken
 from google.cloud import recaptchaenterprise_v1
 from google.cloud.recaptchaenterprise_v1 import Assessment
 
+import jwt
+from functools import wraps
+from datetime import datetime, timezone, timedelta
+from flask import make_response, jsonify
+import uuid
+
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -326,6 +332,223 @@ def success():
     """Display success page after signup."""
     return render_template("success.html")
 
+
+
+# JWT configuration defaults (can also be placed in Config)
+ACCESS_TOKEN_EXPIRE_MINUTES = int(app.config.get("ACCESS_TOKEN_EXPIRE_MINUTES", 15))
+REFRESH_TOKEN_EXPIRE_DAYS = int(app.config.get("REFRESH_TOKEN_EXPIRE_DAYS", 30))
+JWT_ALGORITHM = "HS256"
+JWT_SECRET = app.config.get("SECRET_KEY")
+
+# --- JWT helpers ---
+def create_access_token(email, username):
+    """Create a short-lived access JWT (not persisted)."""
+    now = datetime.now(timezone.utc)
+    exp = now + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    payload = {
+        "sub": email,
+        "username": username,
+        "iat": int(now.timestamp()),
+        "exp": int(exp.timestamp()),
+        "type": "access"
+    }
+    token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+    # pyjwt returns str in modern versions
+    return token
+
+def create_refresh_token(email):
+    """
+    Create a refresh JWT and persist its JTI in DB for revocation.
+    Returns (jwt_str, RefreshToken_db_instance)
+    """
+    now = datetime.now(timezone.utc)
+    exp = now + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+    jti = uuid.uuid4().hex
+    payload = {
+        "sub": email,
+        "iat": int(now.timestamp()),
+        "exp": int(exp.timestamp()),
+        "jti": jti,
+        "type": "refresh"
+    }
+    token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+    # Persist refresh token record with same JTI so we can revoke/validate server side
+    rt = RefreshToken(email=email, expires_days=REFRESH_TOKEN_EXPIRE_DAYS)
+    rt.jti = jti  # use our generated jti to match token
+    rt.expires_at = exp
+    db.session.add(rt)
+    db.session.commit()
+    return token, rt
+
+def decode_jwt(token, verify_exp=True):
+    """Decode a JWT, return payload or raise jwt exceptions."""
+    options = {"verify_exp": verify_exp}
+    payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM], options=options)
+    return payload
+
+# --- decorator to protect endpoints ---
+def token_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        # 1) Try Authorization header
+        auth = request.headers.get("Authorization", "")
+        token = None
+        if auth.startswith("Bearer "):
+            token = auth.split(" ", 1)[1].strip()
+
+        # 2) Fallback to cookie named 'access_token' (safer if HttpOnly but header preferred)
+        if not token:
+            token = request.cookies.get("access_token")
+
+        if not token:
+            flash("Authentication required.", "error")
+            return redirect(url_for("login"))
+
+        try:
+            payload = decode_jwt(token)
+            if payload.get("type") != "access":
+                flash("Invalid token type.", "error")
+                return redirect(url_for("login"))
+            # Attach user info to request context if needed
+            request.user_email = payload.get("sub")
+            request.username = payload.get("username")
+        except jwt.ExpiredSignatureError:
+            flash("Session expired. Please log in again.", "error")
+            return redirect(url_for("login"))
+        except jwt.InvalidTokenError:
+            flash("Invalid token. Please log in again.", "error")
+            return redirect(url_for("login"))
+
+        return f(*args, **kwargs)
+    return decorated
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    recaptcha_site_key = app.config.get("RECAPTCHA_SITE_KEY", "")
+
+    if request.method == "POST":
+        email = request.form.get("email", "").strip()
+        password = request.form.get("password", "")
+        recaptcha_response = request.form.get("g-recaptcha-response", "")
+
+        if recaptcha_site_key and not verify_recaptcha(recaptcha_response):
+            flash("CAPTCHA verification failed. Please try again.", "error")
+            return render_template("login.html", email=email, recaptcha_site_key=recaptcha_site_key)
+
+        user = db.session.get(User, email)
+        if not user or not user.check_password(password):
+            flash("Invalid email or password.", "error")
+            return render_template("login.html", email=email, recaptcha_site_key=recaptcha_site_key)
+
+        if not user.is_activated:
+            flash("Your account is not activated yet. Please check your email.", "error")
+            return render_template("login.html", email=email, recaptcha_site_key=recaptcha_site_key)
+
+        # Create tokens
+        access_token = create_access_token(user.email, user.username)
+        refresh_token, rt_obj = create_refresh_token(user.email)
+
+        # Set refresh token as HttpOnly Secure cookie; access token can be returned in JSON or cookie.
+        # Here we set both as cookies for convenience; access_token cookie is not HttpOnly if you want JS to read it,
+        # but better to keep it HttpOnly; clients use Authorization header when possible.
+        resp = make_response(redirect(url_for("dashboard")))
+        # HttpOnly cookie for refresh token — cannot be read by JS
+        resp.set_cookie(
+            "refresh_token",
+            refresh_token,
+            httponly=True,
+            secure=app.config.get("FORCE_HTTPS", False),
+            samesite="Lax",
+            max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600
+        )
+        # Short-lived access token cookie (HttpOnly so JS can't read it). You may also return it in JSON.
+        resp.set_cookie(
+            "access_token",
+            access_token,
+            httponly=True,
+            secure=app.config.get("FORCE_HTTPS", False),
+            samesite="Lax",
+            max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        )
+        flash("Logged in successfully!", "success")
+        return resp
+
+    return render_template("login.html", recaptcha_site_key=recaptcha_site_key)
+
+
+@app.route("/token/refresh", methods=["POST"])
+def refresh_token():
+    """
+    Use the refresh_token cookie to issue a new access token.
+    Returns redirect or JSON; here we redirect back to dashboard and set cookies.
+    """
+    rt_cookie = request.cookies.get("refresh_token")
+    if not rt_cookie:
+        flash("Missing refresh token. Please log in again.", "error")
+        return redirect(url_for("login"))
+
+    try:
+        payload = decode_jwt(rt_cookie)
+        if payload.get("type") != "refresh":
+            flash("Invalid refresh token.", "error")
+            return redirect(url_for("login"))
+    except jwt.ExpiredSignatureError:
+        flash("Refresh token expired. Please log in again.", "error")
+        return redirect(url_for("login"))
+    except jwt.InvalidTokenError:
+        flash("Invalid refresh token. Please log in again.", "error")
+        return redirect(url_for("login"))
+
+    jti = payload.get("jti")
+    rt_db = RefreshToken.find_by_jti(jti)
+    if not rt_db or rt_db.revoked or rt_db.is_expired():
+        flash("Refresh token revoked or invalid. Please log in again.", "error")
+        return redirect(url_for("login"))
+
+    # Rotate: revoke old refresh token record and issue a new one
+    rt_db.revoked = True
+    db.session.add(rt_db)
+
+    # Issue new tokens
+    user_email = payload.get("sub")
+    user = db.session.get(User, user_email)
+    if not user:
+        flash("User not found.", "error")
+        return redirect(url_for("login"))
+
+    access_token = create_access_token(user.email, user.username)
+    new_refresh_token, new_rt_obj = create_refresh_token(user.email)
+
+    resp = make_response(redirect(url_for("dashboard")))
+    resp.set_cookie(
+        "refresh_token",
+        new_refresh_token,
+        httponly=True,
+        secure=app.config.get("FORCE_HTTPS", False),
+        samesite="Lax",
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600
+    )
+    resp.set_cookie(
+        "access_token",
+        access_token,
+        httponly=True,
+        secure=app.config.get("FORCE_HTTPS", False),
+        samesite="Lax",
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+    )
+
+    db.session.commit()
+    flash("Session refreshed.", "success")
+    return resp
+
+
+@app.route("/dashboard")
+@token_required
+def dashboard():
+    """Simple dashboard page for logged-in users."""
+    # request.user_email and request.username are set by the decorator
+    return render_template("dashboard.html", username=getattr(request, "username", ""))
 
 # Initialize database tables when app starts
 with app.app_context():
