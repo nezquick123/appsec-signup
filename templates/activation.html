@@ -119,7 +119,7 @@
         <p>Invalid or expired activation token. Please try again.</p>
         {% endif %}
         
-        <a href="{{ url_for('signup') }}">{% if success %}Go to Login{% else %}Back to Signup{% endif %}</a>
+        <a href="{{ url_for('login') }}">{% if success %}Go to Login{% else %}Back to Signup{% endif %}</a>
     </div>
 </body>
 </html>
