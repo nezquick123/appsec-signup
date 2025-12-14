@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reset your password</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #667eea;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 450px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        p {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        input[type="tel"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e1e1;
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .optional {
+            color: #888;
+            font-size: 12px;
+            font-weight: normal;
+        }
+
+        button,
+        input[type="submit"] {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover,
+        input[type="submit"]:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled,
+        input[type="submit"]:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+
+        .flash-message {
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
+        .flash-message.error {
+            background-color: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        .flash-message.success {
+            background-color: #d1fae5;
+            color: #059669;
+            border: 1px solid #a7f3d0;
+        }
+
+        /* Password strength meter */
+        .password-strength {
+            margin-top: 8px;
+        }
+
+        .strength-bar {
+            height: 4px;
+            background-color: #e1e1e1;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .strength-fill {
+            height: 100%;
+            transition: width 0.3s, background-color 0.3s;
+            width: 0%;
+        }
+
+        .strength-text {
+            font-size: 12px;
+            margin-top: 4px;
+            color: #666;
+        }
+
+        .strength-weak {
+            background-color: #ef4444;
+        }
+
+        .strength-fair {
+            background-color: #f97316;
+        }
+
+        .strength-good {
+            background-color: #eab308;
+        }
+
+        .strength-strong {
+            background-color: #22c55e;
+        }
+
+        /* Password requirements list */
+        .password-requirements {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+            padding-left: 0;
+            list-style: none;
+        }
+
+        .password-requirements li {
+            padding: 2px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .password-requirements li::before {
+            content: "✗";
+            position: absolute;
+            left: 0;
+            color: #ef4444;
+        }
+
+        .password-requirements li.valid::before {
+            content: "✓";
+            color: #22c55e;
+        }
+
+        .field-hint {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        /* reCAPTCHA styling */
+        .recaptcha-container {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+    {% if recaptcha_site_key %}
+    <script src="https://www.google.com/recaptcha/enterprise.js" async defer></script>
+    {% endif %}
+</head>
+
+<body>
+    <div class="container">
+        <h1>Reset your password</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+            <div class="flash-message {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('request_reset') }}" id="signupForm">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" value="{{ email|default('', true) }}" required
+                    maxlength="255">
+            </div>
+
+
+            {% if recaptcha_site_key %}
+            <div class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}" data-action="LOGIN"
+                data-callback="onRecaptchaSuccess" data-expired-callback="onRecaptchaExpired"></div>
+            <br />
+            <input type="submit" id="submitBtn" value="Submit" disabled>
+            {% else %}
+            <button type="submit" id="submitBtn" disabled>Submit</button>
+            {% endif %}
+
+        </form>
+        <div class="footer-links">
+            <p>Already have an account? <a href="{{ url_for('login') }}">Log In</a></p>
+        </div>
+    </div>
+<script>
+       
+        const email = document.getElementById("email");
+       
+
+        const recaptchaContainer = document.querySelector('.g-recaptcha');
+        const recaptchaEnabled = !!recaptchaContainer;
+
+        // This variable will hold the token once the user solves the captcha
+        let currentRecaptchaToken = null;
+
+        function allRequiredFieldsFilled() {
+            return (
+                email.value.trim().length > 0 
+            );
+        }
+
+        // --- reCAPTCHA Callbacks ---
+
+        // Called automatically by Google when the captcha is solved
+        window.onRecaptchaSuccess = function (token) {
+            currentRecaptchaToken = token;
+            updateSubmitButton();
+        };
+
+        // Called if the token expires (e.g. user waited too long)
+        window.onRecaptchaExpired = function () {
+            currentRecaptchaToken = null;
+            updateSubmitButton();
+        };
+
+        function updateSubmitButton() {
+            if (!submitBtn) return;
+
+            const fieldsValid = (
+                allRequiredFieldsFilled()
+            );
+
+            // If recaptcha is enabled, we MUST have a token to enable the button
+            if (recaptchaEnabled) {
+                if (fieldsValid && currentRecaptchaToken) {
+                    submitBtn.disabled = false;
+                } else {
+                    submitBtn.disabled = true;
+                }
+            } else {
+                // No recaptcha, just check fields
+                submitBtn.disabled = !fieldsValid;
+            }
+        }
+
+        // Event listeners for fields
+        email.addEventListener("input", updateSubmitButton);
+        
+        // Ensure the token is submitted with the form
+        document.getElementById('signupForm').addEventListener('submit', function (e) {
+            if (recaptchaEnabled) {
+                // Ensure the hidden input exists and has the token
+                let hidden = this.querySelector('input[name="g-recaptcha-response"]');
+                if (!hidden) {
+                    hidden = document.createElement('input');
+                    hidden.type = 'hidden';
+                    hidden.name = 'g-recaptcha-response';
+                    this.appendChild(hidden);
+                }
+
+                // If we rely on the widget, get the response directly or use our cached variable
+                const response = (typeof grecaptcha !== 'undefined' && grecaptcha.getResponse)
+                    ? grecaptcha.getResponse()
+                    : currentRecaptchaToken;
+
+                hidden.value = response;
+
+                if (!hidden.value) {
+                    e.preventDefault();
+                    alert("Please complete the CAPTCHA.");
+                }
+            }
+        });
+
+        // Initialize state on load
+        document.addEventListener('DOMContentLoaded', updateSubmitButton);
+    </script>
+    </body>
+
+</html>
