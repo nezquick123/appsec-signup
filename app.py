@@ -259,7 +259,7 @@ def signup():
             return render_template(
                 "success.html",
                 title="Account Created!",
-                message=f"We have sent an activation email to <strong>{email}</strong>. Please click the link in that email to activate your account.",
+                message=f"We have sent an activation email to {email}. Please click the link in that email to activate your account.",
                 secondary_text="If you don't see it within a few minutes, check your spam folder.",
                 action_url=url_for('login'),
                 action_text="Go to Login"
@@ -551,32 +551,45 @@ def dashboard():
 @app.route("/reset_password", methods=["GET", "POST"])
 def reset():
     """Display password reset form."""
-    token = request.args.get("token", "")
+    if request.method == "GET":
+        token = request.args.get("token", "")
 
+        if not token:
+            flash("Invalid reset link.", "error")
+            return redirect(url_for("login"))
+        # Find the token
+        reset_token = PasswordResetToken.find_by_token(token)
+
+        if not reset_token:
+            flash("Invalid reset token.", "error")
+            return render_template("reset_password.html", success=False)
+
+        if reset_token.is_expired():
+            # Delete expired token
+            user = db.session.get(User, reset_token.email)
+
+
+            db.session.delete(reset_token)
+            if user and not user.is_activated:
+                db.session.delete(user) 
+
+            db.session.commit()
+            flash("Reset link has expired. Please request a new reset email.", "error")
+            return render_template("reset_password.html", success=False)
+        return render_template("reset_password.html", token=token, success=None)
+
+    # POST method: process password reset
+    token = request.form.get("token", "")
     if not token:
         flash("Invalid reset link.", "error")
-        return redirect(url_for("login"))
+        return render_template("reset_password.html", success=False)
+    
     # Find the token
     reset_token = PasswordResetToken.find_by_token(token)
-    
     if not reset_token:
         flash("Invalid reset token.", "error")
         return render_template("reset_password.html", success=False)
 
-    if reset_token.is_expired():
-        # Delete expired token
-        user = db.session.get(User, reset_token.email)
-        
-        
-        db.session.delete(reset_token)
-        if user and not user.is_activated:
-            db.session.delete(user) 
-            
-        db.session.commit()
-        flash("Reset link has expired. Please request a new reset email.", "error")
-        return render_template("reset_password.html", success=False)
-
-    # Change the user's password
     user = db.session.get(User, reset_token.email)
     if user:
         new_password = request.form.get("password", "")
@@ -589,7 +602,7 @@ def reset():
         db.session.delete(reset_token)
         db.session.commit()
         flash("Your password has been reset successfully!", "success")
-        return render_template("reset_password.html", success=True)
+        return render_template("login.html", success=True)
 
     flash("User not found.", "error")
     return render_template("reset_password.html", success=False)
