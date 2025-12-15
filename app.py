@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 import logging
 
 from config import Config
-from models import db, User, ActivationToken
+from models import db, User, ActivationToken, RefreshToken
 
 from google.cloud import recaptchaenterprise_v1
 from google.cloud.recaptchaenterprise_v1 import Assessment
@@ -553,3 +553,34 @@ def dashboard():
 # Initialize database tables when app starts
 with app.app_context():
     db.create_all()
+
+
+@app.route("/logout")
+def logout():
+    """Clear session cookies and redirect to login."""
+    # Optional: Revoke the refresh token in the database for better security
+    rt_cookie = request.cookies.get("refresh_token")
+    if rt_cookie:
+        try:
+            # Decode without verifying expiry so we can revoke even if expired
+            payload = decode_jwt(rt_cookie, verify_exp=False)
+            jti = payload.get("jti")
+            if jti:
+                rt_db = RefreshToken.find_by_jti(jti)
+                if rt_db:
+                    rt_db.revoked = True
+                    db.session.add(rt_db)
+                    db.session.commit()
+        except Exception:
+            # If token is invalid or decoding fails, just proceed to clear cookies
+            pass
+
+    # Create response to redirect to login
+    resp = make_response(redirect(url_for("login")))
+    
+    # Clear the authentication cookies
+    resp.delete_cookie("access_token")
+    resp.delete_cookie("refresh_token")
+    
+    flash("You have been logged out successfully.", "success")
+    return resp
