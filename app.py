@@ -19,6 +19,12 @@ from datetime import datetime, timezone, timedelta
 from flask import make_response, jsonify
 import uuid
 
+import pyotp
+import qrcode
+import io
+import base64
+from flask import session
+
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -445,6 +451,11 @@ def login():
             flash("Your account is not activated yet. Please check your email.", "error")
             return render_template("login.html", email=email, recaptcha_site_key=recaptcha_site_key)
 
+        if user.is_mfa_enabled:
+            # Store user email in session temporarily to verify 2FA in next step
+            session['2fa_user_email'] = user.email
+            return redirect(url_for('verify_2fa_login'))
+
         # Create tokens
         access_token = create_access_token(user.email, user.username)
         refresh_token, rt_obj = create_refresh_token(user.email)
@@ -547,12 +558,14 @@ def refresh_token():
 @token_required
 def dashboard():
     """Simple dashboard page for logged-in users."""
-    # request.user_email and request.username are set by the decorator
-    return render_template("dashboard.html", username=getattr(request, "username", ""))
+    user = db.session.get(User, request.user_email)
 
-# Initialize database tables when app starts
-with app.app_context():
-    db.create_all()
+    return render_template(
+        "dashboard.html", 
+        username=getattr(request, "username", ""), 
+        is_mfa_enabled=user.is_mfa_enabled
+    )
+
 
 
 @app.route("/logout")
@@ -584,3 +597,107 @@ def logout():
     
     flash("You have been logged out successfully.", "success")
     return resp
+
+
+@app.route("/mfa/setup")
+@token_required
+def mfa_setup():
+    """Generate MFA secret and QR code for the user."""
+    # Retrieve user from DB using email from token (set by decorator)
+    user = db.session.get(User, request.user_email)
+    
+    if not user.mfa_secret:
+        # Generate a new random secret (32 chars base32)
+        user.mfa_secret = pyotp.random_base32()
+        db.session.commit()
+
+    # Create the URI for Google Authenticator
+    # format: otpauth://totp/Issuer:Account?secret=SECRET&issuer=Issuer
+    totp_uri = pyotp.totp.TOTP(user.mfa_secret).provisioning_uri(
+        name=user.email, 
+        issuer_name="AppSecSignup"
+    )
+
+    # Generate QR Code image
+    img = qrcode.make(totp_uri)
+    buffered = io.BytesIO()
+    img.save(buffered, format="PNG")
+    img_str = base64.b64encode(buffered.getvalue()).decode("utf-8")
+
+    return render_template("mfa_setup.html", qr_code=img_str, secret=user.mfa_secret)
+
+
+@app.route("/mfa/enable", methods=["POST"])
+@token_required
+def mfa_enable():
+    """Verify the code and enable MFA permanently."""
+    user = db.session.get(User, request.user_email)
+    code = request.form.get("code")
+
+    if not user.mfa_secret:
+        flash("MFA setup not initialized.", "error")
+        return redirect(url_for("dashboard"))
+
+    # Verify the provided code
+    totp = pyotp.TOTP(user.mfa_secret)
+    if totp.verify(code):
+        user.is_mfa_enabled = True
+        db.session.commit()
+        flash("Two-Factor Authentication enabled successfully!", "success")
+        return redirect(url_for("dashboard"))
+    else:
+        flash("Invalid code. Please try again.", "error")
+        return redirect(url_for("mfa_setup"))
+    
+
+@app.route("/login/2fa", methods=["GET", "POST"])
+def verify_2fa_login():
+    """Second step of login: verify TOTP code."""
+    email = session.get('2fa_user_email')
+    
+    if not email:
+        flash("Session expired or invalid. Please login again.", "error")
+        return redirect(url_for("login"))
+
+    if request.method == "POST":
+        code = request.form.get("code")
+        user = db.session.get(User, email)
+
+        if not user or not user.mfa_secret:
+            session.pop('2fa_user_email', None)
+            flash("User invalid.", "error")
+            return redirect(url_for("login"))
+
+        totp = pyotp.TOTP(user.mfa_secret)
+        
+        if totp.verify(code):
+            # Code valid! Issue tokens just like in the main login function
+            session.pop('2fa_user_email', None) # Clear temp session
+            
+            access_token = create_access_token(user.email, user.username)
+            refresh_token, rt_obj = create_refresh_token(user.email)
+
+            resp = make_response(redirect(url_for("dashboard")))
+            
+            # Use your existing cookie setting logic here
+            resp.set_cookie(
+                "refresh_token", refresh_token, httponly=True,
+                secure=app.config.get("FORCE_HTTPS", False), samesite="Lax",
+                max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 3600
+            )
+            resp.set_cookie(
+                "access_token", access_token, httponly=True,
+                secure=app.config.get("FORCE_HTTPS", False), samesite="Lax",
+                max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60
+            )
+            
+            flash("Logged in successfully with MFA!", "success")
+            return resp
+        else:
+            flash("Invalid 2FA code.", "error")
+
+    return render_template("mfa_verify.html")
+
+
+with app.app_context():
+    db.create_all()
