@@ -26,6 +26,7 @@ import base64
 from flask import session
 
 
+
 app = Flask(__name__)
 app.config.from_object(Config)
 db.init_app(app)
@@ -697,6 +698,33 @@ def verify_2fa_login():
             flash("Invalid 2FA code.", "error")
 
     return render_template("mfa_verify.html")
+
+
+@app.route("/mfa/disable", methods=["GET", "POST"])
+@token_required
+def mfa_disable():
+    """Disable MFA after password confirmation."""
+    user = db.session.get(User, request.user_email)
+    
+    # Security check: User must actually have MFA enabled
+    if not user.is_mfa_enabled:
+        flash("MFA is not currently enabled.", "error")
+        return redirect(url_for("dashboard"))
+
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        
+        # Verify password to authorize the action
+        if user.check_password(password):
+            user.is_mfa_enabled = False
+            user.mfa_secret = None  # Clear the secret so they must rescan QR code if they re-enable
+            db.session.commit()
+            flash("Two-Factor Authentication has been disabled.", "success")
+            return redirect(url_for("dashboard"))
+        else:
+            flash("Incorrect password. MFA was not disabled.", "error")
+    
+    return render_template("mfa_disable.html")
 
 
 with app.app_context():
