@@ -25,9 +25,11 @@ import io
 import base64
 from flask import session
 
+from flask_wtf.csrf import CSRFProtect, CSRFError
 
 
 app = Flask(__name__)
+csrf = CSRFProtect(app)
 app.config.from_object(Config)
 db.init_app(app)
 

@@ -3,6 +3,7 @@
     <p>Please enter the code from your authenticator app.</p>
 
     <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <div class="form-group">
             <input type="text" name="code" placeholder="000 000" required autocomplete="off" autofocus>
         </div>
