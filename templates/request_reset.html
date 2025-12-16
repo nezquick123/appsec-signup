@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up</title>
+    <title>Reset your password</title>
     <style>
         * {
             box-sizing: border-box;
@@ -214,7 +214,7 @@
 
 <body>
     <div class="container">
-        <h1>Create Account</h1>
+        <h1>Reset your password</h1>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -226,53 +226,11 @@
         {% endif %}
         {% endwith %}
 
-        <form method="POST" action="{{ url_for('signup') }}" id="signupForm">
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" value="{{ username|default('', true) }}" required
-                    minlength="3" maxlength="80" pattern="[a-zA-Z0-9_]+"
-                    title="Username can only contain letters, numbers, and underscores">
-                <p class="field-hint">3-80 characters, letters, numbers, and underscores only</p>
-            </div>
-
+        <form method="POST" action="{{ url_for('request_reset') }}" id="signupForm">
             <div class="form-group">
                 <label for="email">Email</label>
                 <input type="email" id="email" name="email" value="{{ email|default('', true) }}" required
                     maxlength="255">
-            </div>
-
-            <div class="form-group">
-                <label for="phone_number">Phone Number <span class="optional">(optional)</span></label>
-                <input type="tel" id="phone_number" name="phone_number" maxlength="50"
-                    pattern="[\+]?[(]?[0-9]{1,3}[)]?[ .\-]?[0-9]{1,4}[ .\-]?[0-9]{1,4}[ .\-]?[0-9]{1,9}"
-                    title="Enter a valid phone number (e.g., +1234567890 or 123-456-7890)">
-
-                <p class="field-hint">e.g., +1234567890 or 123-456-7890</p>
-            </div>
-
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required minlength="8" maxlength="128">
-                <div class="password-strength">
-                    <div class="strength-bar">
-                        <div class="strength-fill" id="strengthFill"></div>
-                    </div>
-                    <div class="strength-text" id="strengthText">Enter a password</div>
-                </div>
-                <ul class="password-requirements" id="requirements">
-                    <li id="req-length">At least 8 characters</li>
-                    <li id="req-lower">At least one lowercase letter</li>
-                    <li id="req-upper">At least one uppercase letter</li>
-                    <li id="req-digit">At least one digit</li>
-                    <li id="req-special">At least one special character (!@#$%^&*(),.?":{}|&lt;&gt;)</li>
-                </ul>
-            </div>
-
-            <div class="form-group">
-                <label for="confirm_password">Confirm Password</label>
-                <input type="password" id="confirm_password" name="confirm_password" required minlength="8"
-                    maxlength="128">
-                <li id="confirm-passw" class="password-requirements">Re-enter your password to confirm</li>
             </div>
 
 
@@ -282,21 +240,18 @@
             <br />
             <input type="submit" id="submitBtn" value="Submit" disabled>
             {% else %}
-            <button type="submit" id="submitBtn" disabled>Sign Up</button>
+            <button type="submit" id="submitBtn" disabled>Submit</button>
             {% endif %}
-        </form>
 
+        </form>
         <div class="footer-links">
-            <p>Already have an account? <a href="{{ url_for('login') }}">Log In</a></p>
+            <p>Go back:  <a href="{{ url_for('login') }}">Log In</a></p>
         </div>
     </div>
-
-    <script>
-        const username = document.getElementById("username");
+<script>
+       
         const email = document.getElementById("email");
-        const password = document.getElementById("password");
-        const confirmPassword = document.getElementById("confirm_password");
-        const submitBtn = document.getElementById("submitBtn");
+       
 
         const recaptchaContainer = document.querySelector('.g-recaptcha');
         const recaptchaEnabled = !!recaptchaContainer;
@@ -306,26 +261,8 @@
 
         function allRequiredFieldsFilled() {
             return (
-                username.value.trim().length >= 3 &&
-                email.value.trim().length > 0 &&
-                password.value.trim().length >= 8 &&
-                confirmPassword.value.trim().length >= 8
+                email.value.trim().length > 0 
             );
-        }
-
-        function passwordsMatch() {
-            return password.value === confirmPassword.value;
-        }
-
-        function passwordStrongEnough() {
-            const checks = {
-                length: password.value.length >= 8,
-                lower: /[a-z]/.test(password.value),
-                upper: /[A-Z]/.test(password.value),
-                digit: /[0-9]/.test(password.value),
-                special: /[!@#$%^&*(),.?":{}|<>]/.test(password.value)
-            };
-            return Object.values(checks).every(Boolean);
         }
 
         // --- reCAPTCHA Callbacks ---
@@ -346,9 +283,7 @@
             if (!submitBtn) return;
 
             const fieldsValid = (
-                allRequiredFieldsFilled() &&
-                passwordsMatch() &&
-                passwordStrongEnough()
+                allRequiredFieldsFilled()
             );
 
             // If recaptcha is enabled, we MUST have a token to enable the button
@@ -365,11 +300,8 @@
         }
 
         // Event listeners for fields
-        username.addEventListener("input", updateSubmitButton);
         email.addEventListener("input", updateSubmitButton);
-        password.addEventListener("input", updateSubmitButton);
-        confirmPassword.addEventListener("input", updateSubmitButton);
-
+        
         // Ensure the token is submitted with the form
         document.getElementById('signupForm').addEventListener('submit', function (e) {
             if (recaptchaEnabled) {
@@ -399,88 +331,6 @@
         // Initialize state on load
         document.addEventListener('DOMContentLoaded', updateSubmitButton);
     </script>
-
-
-    <script>
-        const passwordInput = document.getElementById('password');
-        const strengthFill = document.getElementById('strengthFill');
-        const strengthText = document.getElementById('strengthText');
-        const requirements = {
-            length: document.getElementById('req-length'),
-            lower: document.getElementById('req-lower'),
-            upper: document.getElementById('req-upper'),
-            digit: document.getElementById('req-digit'),
-            special: document.getElementById('req-special')
-        };
-
-        function checkPasswordStrength(password) {
-            let score = 0;
-            const checks = {
-                length: password.length >= 8,
-                lower: /[a-z]/.test(password),
-                upper: /[A-Z]/.test(password),
-                digit: /[0-9]/.test(password),
-                special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
-            };
-
-            // Update requirement indicators
-            for (const [key, element] of Object.entries(requirements)) {
-                if (checks[key]) {
-                    element.classList.add('valid');
-                    score++;
-                } else {
-                    element.classList.remove('valid');
-                }
-            }
-
-            return { score, checks };
-        }
-
-        function updateStrengthMeter(score) {
-            const percentage = (score / 5) * 100;
-            strengthFill.style.width = percentage + '%';
-
-            strengthFill.className = 'strength-fill';
-            if (score === 0) {
-                strengthText.textContent = 'Enter a password';
-                strengthFill.style.width = '0%';
-            } else if (score <= 2) {
-                strengthFill.classList.add('strength-weak');
-                strengthText.textContent = 'Weak password';
-            } else if (score === 3) {
-                strengthFill.classList.add('strength-fair');
-                strengthText.textContent = 'Fair password';
-            } else if (score === 4) {
-                strengthFill.classList.add('strength-good');
-                strengthText.textContent = 'Good password';
-            } else {
-                strengthFill.classList.add('strength-strong');
-                strengthText.textContent = 'Strong password';
-            }
-        }
-
-        passwordInput.addEventListener('input', function () {
-            const { score } = checkPasswordStrength(this.value);
-            updateStrengthMeter(score);
-        });
-
-        // Form validation
-        document.getElementById('signupForm').addEventListener('submit', function (e) {
-            const password = passwordInput.value;
-            const { score, checks } = checkPasswordStrength(password);
-
-            if (score < 5) {
-                e.preventDefault();
-                let missing = [];
-                if (!checks.length) missing.push('at least 8 characters');
-                if (!checks.lower) missing.push('a lowercase letter');
-                if (!checks.upper) missing.push('an uppercase letter');
-                if (!checks.digit) missing.push('a digit');
-                if (!checks.special) missing.push('a special character');
-                alert('Password must contain: ' + missing.join(', '));
-            }
-        });
-    </script>
-</body>
+    </body>
 
 </html>

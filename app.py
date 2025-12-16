@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 import logging
 
 from config import Config
-from models import db, User, ActivationToken, RefreshToken
+from models import db, User, ActivationToken, PasswordResetToken, RefreshToken
 
 from google.cloud import recaptchaenterprise_v1
 from google.cloud.recaptchaenterprise_v1 import Assessment
@@ -101,32 +101,6 @@ def validate_user_email(email):
     except EmailNotValidError as e:
         return False, str(e)
 
-
-# def verify_recaptcha(recaptcha_response):
-#     """Verify reCAPTCHA response with Google's API."""
-#     secret_key = app.config.get("RECAPTCHA_SECRET_KEY", "")
-#     if not secret_key:
-#         # If reCAPTCHA is not configured, skip verification
-#         return True
-
-#     if not recaptcha_response:
-#         return False
-
-#     try:
-#         response = requests.post(
-#             "https://www.google.com/recaptcha/api/siteverify",
-#             data={
-#                 "secret": secret_key,
-#                 "response": recaptcha_response
-#             },
-#             timeout=5
-#         )
-#         result = response.json()
-#         return result.get("success", False)
-#     except requests.RequestException:
-#         # If verification service is unavailable, fail closed
-#         return False
-
 def verify_recaptcha(recaptcha_token):
     """Verify reCAPTCHA Enterprise token."""
     # If there is no token provided from the client, fail verification
@@ -184,8 +158,20 @@ def get_activation_url(token):
     base_url = app.config.get("APP_URL", "http://localhost:5000")
     return f"{base_url}/signup/activate?token={token}"
 
+def generate_reset_token(email):
+    """Generate a password reset token for the user."""
+    expiry_hours = app.config.get("RESET_TOKEN_EXPIRY_HOURS", 1)
+    token = PasswordResetToken(email=email, expiry_hours=expiry_hours)
+    db.session.add(token)
+    db.session.commit()
+    return token.raw_token
 
-@app.route("/", methods=["GET", "POST"])
+def get_reset_url(token):
+    """Generate the full password reset URL."""
+    base_url = app.config.get("APP_URL", "http://localhost:5000")
+    return f"{base_url}/reset_password?token={token}"
+
+@app.route("/signup", methods=["GET", "POST"])
 def signup():
     """Handle signup form display and submission."""
     recaptcha_site_key = app.config.get("RECAPTCHA_SITE_KEY", "")
@@ -276,7 +262,14 @@ def signup():
             # The activation_url should be sent via a secure email service
             # For development, the URL can be retrieved from the database
 
-            return redirect(url_for("success"))
+            return render_template(
+                "success.html",
+                title="Account Created!",
+                message=f"We have sent an activation email to {email}. Please click the link in that email to activate your account.",
+                secondary_text="If you don't see it within a few minutes, check your spam folder.",
+                action_url=url_for('login'),
+                action_text="Go to Login"
+            )
         except IntegrityError:
             db.session.rollback()
             flash("Username or email already exists.", "error")
@@ -333,10 +326,15 @@ def activate():
     return render_template("activation.html", success=False)
 
 
+
+
 @app.route("/success")
 def success():
     """Display success page after signup."""
-    return render_template("success.html")
+    title = request.args.get('title', 'Success!')
+    message = request.args.get('message', 'Operation successful.')
+    return render_template("success.html", title=title, message=message)    
+    
 
 
 
@@ -429,7 +427,7 @@ def token_required(f):
         return f(*args, **kwargs)
     return decorated
 
-@app.route("/login", methods=["GET", "POST"])
+@app.route("/", methods=["GET", "POST"])
 def login():
     recaptcha_site_key = app.config.get("RECAPTCHA_SITE_KEY", "")
 
@@ -699,5 +697,93 @@ def verify_2fa_login():
     return render_template("mfa_verify.html")
 
 
+@app.route("/reset_password", methods=["GET", "POST"])
+def reset():
+    """Display password reset form."""
+    if request.method == "GET":
+        token = request.args.get("token", "")
+
+        if not token:
+            flash("Invalid reset link.", "error")
+            return redirect(url_for("login"))
+        # Find the token
+        reset_token = PasswordResetToken.find_by_token(token)
+
+        if not reset_token:
+            flash("Invalid reset token.", "error")
+            return render_template("reset_password.html", success=False)
+
+        if reset_token.is_expired():
+            # Delete expired token
+            user = db.session.get(User, reset_token.email)
+
+
+            db.session.delete(reset_token)
+            if user and not user.is_activated:
+                db.session.delete(user) 
+
+            db.session.commit()
+            flash("Reset link has expired. Please request a new reset email.", "error")
+            return render_template("reset_password.html", success=False)
+        return render_template("reset_password.html", token=token, success=None)
+
+    # POST method: process password reset
+    token = request.form.get("token", "")
+    if not token:
+        flash("Invalid reset link.", "error")
+        return render_template("reset_password.html", success=False)
+    
+    # Find the token
+    reset_token = PasswordResetToken.find_by_token(token)
+    if not reset_token:
+        flash("Invalid reset token.", "error")
+        return render_template("reset_password.html", success=False)
+
+    user = db.session.get(User, reset_token.email)
+    if user:
+        new_password = request.form.get("password", "")
+        valid, error = validate_password(new_password)
+        if not valid:
+            flash(error, "error")
+            return render_template("reset_password.html", success=False)
+
+        user.set_password(new_password)
+        db.session.delete(reset_token)
+        db.session.commit()
+        flash("Your password has been reset successfully!", "success")
+        return render_template("login.html", success=True)
+
+    flash("User not found.", "error")
+    return render_template("reset_password.html", success=False)
+    
+@app.route("/request_reset", methods=["GET", "POST"])
+def request_reset():
+    recaptcha_site_key = app.config.get("RECAPTCHA_SITE_KEY", "")
+
+    if request.method == "POST":
+        email = request.form.get("email", "").strip()
+        recaptcha_response = request.form.get("g-recaptcha-response", "")
+
+        if recaptcha_site_key and not verify_recaptcha(recaptcha_response):
+            flash("CAPTCHA verification failed.", "error")
+            return render_template("request_reset.html", email=email, recaptcha_site_key=recaptcha_site_key)
+
+        user = db.session.get(User, email)
+        if user:
+            raw_token = generate_reset_token(email)
+            reset_url = get_reset_url(raw_token)
+            logger.info(f"Password reset link: {reset_url}")
+
+            return render_template("success.html",
+                title="Check Your Email",
+                message=f"If an account exists for {email}, you will receive password reset instructions shortly.",
+                secondary_text="The link will expire in 1 hour.",
+                action_url=url_for('login'),
+                action_text="Return to Login"
+            )
+    return render_template("request_reset.html", recaptcha_site_key=recaptcha_site_key)
+
+
+# Initialize database tables when app starts
 with app.app_context():
     db.create_all()
