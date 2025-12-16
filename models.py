@@ -47,6 +47,8 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     phone_number = db.Column(db.String(50), nullable=True)
     is_activated = db.Column(db.Boolean, nullable=False, default=False)
+    mfa_secret = db.Column(db.String(32), nullable=True)
+    is_mfa_enabled = db.Column(db.Boolean, default=False, nullable=False)
 
     def __init__(self, email, username, password, phone_number=None):
         self.email = email
@@ -54,6 +56,8 @@ class User(db.Model):
         self.password_hash = hash_password(password)
         self.phone_number = phone_number
         self.is_activated = False
+        self.mfa_secret = None
+        self.is_mfa_enabled = False
 
     def __repr__(self):
         return f"<User {self.username}>"

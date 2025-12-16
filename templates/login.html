@@ -76,6 +76,9 @@
             font-weight: 600;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
+            /* ensure button sits above any injected recaptcha badges/iframes */
+            position: relative;
+            z-index: 20;
         }
 
         button:hover {
