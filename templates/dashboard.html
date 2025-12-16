@@ -137,7 +137,10 @@
             
             <div class="info-label">Two-Factor Authentication</div>
             {% if is_mfa_enabled %}
-                <div class="info-value" style="color: #059669;">● Enabled</div>
+                            <div class="info-value" style="color: #059669; display: flex; align-items: center; justify-content: space-between;">
+                <span>● Enabled</span>
+                <a href="{{ url_for('mfa_disable') }}" style="font-size: 12px; color: #ef4444; text-decoration: none; border: 1px solid #ef4444; padding: 2px 8px; border-radius: 4px;">Disable</a>
+            </div>
             {% else %}
                 <div class="info-value" style="margin-bottom: 5px;">Disabled</div>
                 <a href="{{ url_for('mfa_setup') }}" style="font-size: 14px; color: #667eea; font-weight: 600; text-decoration: none;">Enable 2FA &rarr;</a>
