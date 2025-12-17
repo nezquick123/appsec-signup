@@ -753,8 +753,8 @@ def reset():
         user.set_password(new_password)
         db.session.delete(reset_token)
         db.session.commit()
-        flash("Your password has been reset successfully!", "success")
-        return render_template("login.html", success=True)
+        
+        return redirect(url_for("login"))
 
     flash("User not found.", "error")
     return render_template("reset_password.html", success=False)
