@@ -42,3 +42,7 @@ class Config:
     FORCE_HTTPS = os.environ.get("FORCE_HTTPS", "false").lower() == "true"
 
     RECAPTCHA_PROJECT_ID = os.environ.get("RECAPTCHA_PROJECT_ID", "")
+    ACCESS_TOKEN_EXPIRE_MINUTES = 15
+    REFRESH_TOKEN_EXPIRE_DAYS = 30
+    ACTIVATION_TOKEN_EXPIRY_HOURS = 24
+    RESET_TOKEN_EXPIRY_HOURS = 1
