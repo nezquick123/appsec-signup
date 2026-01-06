@@ -117,6 +117,24 @@ def token_required(f):
             flash("Authentication required.", "error")
             return redirect(url_for("auth.login")) 
 
+        # check if refresh token is revoked
+        logger.info(f"Checking refresh token for revocation.")
+        if request.cookies.get("refresh_token"):
+            try:
+                rt_payload = decode_jwt(request.cookies.get("refresh_token"))
+                jti = rt_payload.get("jti")
+                rt_db = RefreshToken.query.filter_by(jti=jti).first()
+                logger.debug(f"Refresh token payload: {rt_db.revoked}")
+                if rt_db and rt_db.revoked:
+                   response = redirect(url_for("auth.login"))
+                   response.delete_cookie("access_token") # Force clear the stale token
+                   response.delete_cookie("refresh_token")
+                   flash("Your session has been updated. Please log in again.", "info")
+                   return response
+            except Exception as e:
+                logger.info(f"Error checking refresh token revocation: {e}")
+                pass # Ignore errors here
+
         try:
             payload = decode_jwt(token)
             if payload.get("type") != "access":
@@ -185,6 +203,23 @@ def role_required(role: str):
             if not token:
                 flash("Authentication required.", "error")
                 return redirect(url_for("auth.login")) 
+                    # check if refresh token is revoked
+            # check if refresh token is revoked
+            logger.info(f"Checking refresh token for revocation.")
+            if request.cookies.get("refresh_token"):
+                try:
+                    rt_payload = decode_jwt(request.cookies.get("refresh_token"))
+                    jti = rt_payload.get("jti")
+                    rt_db = RefreshToken.query.filter_by(jti=jti).first()
+                    logger.info(f"Refresh token payload: {rt_db.revoked}")
+                    if rt_db and rt_db.revoked:
+                       response = redirect(url_for("auth.login"))
+                       response.delete_cookie("access_token") 
+                       response.delete_cookie("refresh_token")
+                       flash("Your session has been updated. Please log in again.", "info")
+                    return response
+                except Exception:
+                    pass # Ignore errors here
 
             try:
                

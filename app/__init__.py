@@ -1,5 +1,6 @@
 from asyncio.log import logger
 import logging
+from urllib import response
 from flask import Flask
 from config import Config
 from .extensions import db, csrf
@@ -14,6 +15,14 @@ def create_app(config_class=Config):
     db.init_app(app)
     csrf.init_app(app)
 
+    @app.after_request
+    def add_header(response):
+    # Only apply no-cache if the response isn't a static file
+        if "Cache-Control" not in response.headers:
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
     # Configure Logging
     logging.basicConfig(
         level=logging.INFO,
