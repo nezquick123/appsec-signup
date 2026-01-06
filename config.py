@@ -46,3 +46,8 @@ class Config:
     REFRESH_TOKEN_EXPIRE_DAYS = 30
     ACTIVATION_TOKEN_EXPIRY_HOURS = 24
     RESET_TOKEN_EXPIRY_HOURS = 1
+
+    # File upload settings
+    UPLOAD_FOLDER = os.path.join(os.getcwd(), 'app', 'static', 'uploads')
+    ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024

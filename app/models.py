@@ -89,3 +89,45 @@ class RefreshToken(db.Model):
 
     def is_expired(self):
         return datetime.now(timezone.utc) > self.expires_at.replace(tzinfo=timezone.utc)
+    
+
+class Post(db.Model):
+    __tablename__ = 'posts'
+    id = db.Column(db.String(36), primary_key=True)  # UUID
+    title = db.Column(db.String(255), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    filename = db.Column(db.String(255), nullable=False) # Stored on disk
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    
+    # Foreign Key to User
+    author_username = db.Column(db.String(80), db.ForeignKey('users.username'), nullable=False)
+    
+    # Relationships
+    author = db.relationship('User', backref=db.backref('posts', lazy=True))
+    comments = db.relationship('Comment', backref='post', cascade="all, delete-orphan", lazy=True)
+
+    def __init__(self, title, filename, author_username, description=None):
+        self.id = str(uuid.uuid4())
+        self.title = title
+        self.filename = filename
+        self.author_username = author_username
+        self.description = description
+
+class Comment(db.Model):
+    __tablename__ = 'comments'
+    id = db.Column(db.String(36), primary_key=True) # UUID
+    content = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    
+    # Foreign Keys
+    post_id = db.Column(db.String(36), db.ForeignKey('posts.id'), nullable=False)
+    author_username = db.Column(db.String(80), db.ForeignKey('users.username'), nullable=False)
+    
+    # Relationship
+    author = db.relationship('User', backref=db.backref('comments', lazy=True))
+
+    def __init__(self, content, post_id, author_username):
+        self.id = str(uuid.uuid4())
+        self.content = content
+        self.post_id = post_id
+        self.author_username = author_username

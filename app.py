@@ -158,7 +158,7 @@ def generate_activation_token(email):
 
 def get_activation_url(token):
     """Generate the full activation URL."""
-    base_url = app.config.get("APP_URL", "http://localhost:5000")
+    base_url = app.config.get("APP_URL", "https://localhost:5000")
     return f"{base_url}/signup/activate?token={token}"
 
 def generate_reset_token(email):

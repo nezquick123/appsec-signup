@@ -65,6 +65,7 @@
             border-color: #667eea;
         }
 
+        /* Primary Login Button */
         button {
             width: 100%;
             padding: 14px;
@@ -76,7 +77,6 @@
             font-weight: 600;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
-            /* ensure button sits above any injected recaptcha badges/iframes */
             position: relative;
             z-index: 20;
         }
@@ -84,6 +84,28 @@
         button:hover {
             transform: translateY(-2px);
             box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        /* NEW: Secondary Button for Gallery */
+        .btn-secondary {
+            display: block;
+            width: 100%;
+            text-align: center;
+            padding: 12px;
+            margin-top: 15px;
+            background: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
         }
 
         .flash-messages {
@@ -129,6 +151,15 @@
         .footer-links a:hover {
             text-decoration: underline;
         }
+        
+        .divider {
+            margin-top: 30px;
+            border-top: 1px solid #eee;
+            padding-top: 20px;
+            text-align: center;
+            color: #888;
+            font-size: 14px;
+        }
     </style>
 
     {% if recaptcha_site_key %}
@@ -152,7 +183,7 @@
         {% endwith %}
 
         <form method="POST" action="{{ url_for('auth.login') }}">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <div class="form-group">
                 <label for="email">Email</label>
                 <input type="email"
@@ -180,16 +211,18 @@
             {% endif %}
 
             <button type="submit">Login</button>
-
         </form>
 
         <div class="footer-links">
             <p>Don't have an account? <a href="{{ url_for('auth.signup') }}">Sign Up</a></p>
+            <p style="margin-top: 10px;">Forgot your password? <a href="{{ url_for('auth.request_reset') }}">Reset Password</a></p>
         </div>
 
-        <div class="footer-links">
-            <p>Forgot your password? <a href="{{ url_for('auth.request_reset') }}">Reset Password</a></p>
+        <div class="divider">
+            <p>Want to look around?</p>
+            <a href="{{ url_for('content.gallery') }}" class="btn-secondary">Browse Public Gallery</a>
         </div>
+
     </div>
 
 </body>

@@ -132,3 +132,22 @@ def token_required(f):
 
         return f(*args, **kwargs)
     return decorated
+
+
+def get_logged_in_user():
+    """
+    Returns the username from the cookie if logged in, otherwise None.
+    Does not enforce login or redirect.
+    """
+    token = request.cookies.get("access_token")
+    if not token:
+        return None
+    
+    try:
+        payload = decode_jwt(token)
+        if payload.get("type") == "access":
+            return payload.get("username")
+    except Exception:
+        pass # Invalid or expired token
+        
+    return None

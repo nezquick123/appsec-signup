@@ -77,6 +77,25 @@
             color: #333;
             font-weight: 500;
         }
+        
+        /* New Action Buttons Style */
+        .btn-action {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
         /* Button style matching activation.html link */
         a.btn-logout {
             display: inline-block;
@@ -137,7 +156,7 @@
             
             <div class="info-label">Two-Factor Authentication</div>
             {% if is_mfa_enabled %}
-                            <div class="info-value" style="color: #059669; display: flex; align-items: center; justify-content: space-between;">
+            <div class="info-value" style="color: #059669; display: flex; align-items: center; justify-content: space-between;">
                 <span>● Enabled</span>
                 <a href="{{ url_for('mfa.mfa_disable') }}" style="font-size: 12px; color: #ef4444; text-decoration: none; border: 1px solid #ef4444; padding: 2px 8px; border-radius: 4px;">Disable</a>
             </div>
@@ -148,6 +167,11 @@
         </div>
 
         <p>You have successfully authenticated into the secure area of the application.</p>
+
+        <div style="margin-bottom: 25px;">
+            <a href="{{ url_for('content.gallery') }}" class="btn-action">Browse Gallery</a>
+            <a href="{{ url_for('content.upload') }}" class="btn-action">Upload Content</a>
+        </div>
 
         <a href="{{ url_for('auth.logout') }}" class="btn-logout">Sign Out</a>
     </div>

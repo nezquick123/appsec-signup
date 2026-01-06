@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Upload</title>
+    <style>
+        body { font-family: sans-serif; background: #667eea; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .container { background: white; padding: 40px; border-radius: 10px; width: 100%; max-width: 500px; }
+        input, textarea { width: 100%; margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;}
+        button { width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Upload Image</h1>
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            
+            <label>Select Image (JPG, PNG, GIF)</label>
+            <input type="file" name="file" accept=".jpg,.jpeg,.png,.gif" required>
+            
+            <input type="text" name="title" placeholder="Title" required>
+            <textarea name="description" placeholder="Description (optional)"></textarea>
+            
+            <button type="submit">Upload</button>
+        </form>
+        <br>
+        <a href="{{ url_for('content.gallery') }}">Back to Gallery</a>
+    </div>
+</body>
+</html>
