@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner Panel - User Management</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #667eea;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 900px; /* Wider for table content */
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-weight: 600;
+            text-align: center;
+        }
+        h2 {
+            color: #555;
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        /* Flash Messages */
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+        .flash-message {
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .flash-message.success {
+            background-color: #d1fae5;
+            color: #059669;
+            border: 1px solid #a7f3d0;
+        }
+        .flash-message.error {
+            background-color: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #fecaca;
+        }
+
+        /* Table Styling */
+        .user-table-container {
+            overflow-x: auto;
+            margin-bottom: 30px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        th {
+            background-color: #f8fafc;
+            color: #888;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 12px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        td {
+            padding: 15px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #333;
+            font-size: 14px;
+        }
+        tr:hover {
+            background-color: #f1f5f9;
+        }
+
+        /* Role Badge Styling */
+        .role-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .role-regular { background: #e2e8f0; color: #475569; }
+        .role-admin { background: #dbeafe; color: #2563eb; }
+        .role-owner { background: #fef3c7; color: #d97706; }
+
+        /* Form Controls */
+        .role-select {
+            padding: 6px;
+            border-radius: 4px;
+            border: 1px solid #cbd5e1;
+            font-size: 13px;
+            margin-right: 5px;
+            outline: none;
+        }
+        .btn-update {
+            padding: 6px 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+        .btn-update:hover {
+            opacity: 0.9;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            text-decoration: none;
+            color: #667eea;
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <h1>Owner Control Panel</h1>
+        <h2>Manage system users and access levels</h2>
+
+        <div class="user-table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Current Role</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                    <tr>
+                        <td><strong>{{ user.username }}</strong></td>
+                        <td>{{ user.email }}</td>
+                        <td>
+                            <span class="role-badge role-{{ user.role.name.lower() }}">
+                                {{ user.role.name }}
+                            </span>
+                        </td>
+                        <td>
+                            <form action="{{ url_for('admin.change_role', email=user.email) }}" method="POST" style="display: flex; align-items: center;">
+                                <select name="new_role" class="role-select">
+                                    <option value="REGULAR" {{ 'selected' if user.role.name == 'REGULAR' }}>Regular</option>
+                                    <option value="ADMIN" {{ 'selected' if user.role.name == 'ADMIN' }}>Admin</option>
+                                    <option value="OWNER" {{ 'selected' if user.role.name == 'OWNER' }}>Owner</option>
+                                </select>
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <button type="submit" class="btn-update">Update</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <a href="{{ url_for('main.dashboard') }}" class="back-link">&larr; Return to Dashboard</a>
+    </div>
+</body>
+</html>

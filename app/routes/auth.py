@@ -42,7 +42,7 @@ def login():
             return redirect(url_for('mfa.verify_2fa_login'))
 
         # Issue Tokens
-        access_token = create_access_token(user.email, user.username)
+        access_token = create_access_token(user.email, user.username, user.role.name)
         refresh_token, _ = create_refresh_token(user.email)
 
         resp = make_response(redirect(url_for("main.dashboard")))
@@ -255,3 +255,4 @@ def reset():
         return redirect(url_for("auth.login"))
     
     return render_template("reset_password.html", success=False)
+

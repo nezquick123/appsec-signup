@@ -41,6 +41,10 @@ class Config:
     # HTTPS enforcement
     FORCE_HTTPS = os.environ.get("FORCE_HTTPS", "false").lower() == "true"
 
+    # Owner credentials
+    OWNER_EMAIL = os.environ.get("OWNER_EMAIL", "")
+    OWNER_PASSWORD = os.environ.get("OWNER_PASSWORD", "")
+
     RECAPTCHA_PROJECT_ID = os.environ.get("RECAPTCHA_PROJECT_ID", "")
     ACCESS_TOKEN_EXPIRE_MINUTES = 15
     REFRESH_TOKEN_EXPIRE_DAYS = 30

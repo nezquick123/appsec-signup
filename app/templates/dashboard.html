@@ -108,6 +108,22 @@
             color: #059669;
             border: 1px solid #a7f3d0;
         }
+        a.btn-owner-panel {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%); /* Green gradient for owner panel */
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+        a.btn-owner-panel:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(5, 150, 105, 0.4);
+        }
     </style>
 </head>
 <body>
@@ -149,6 +165,8 @@
 
         <p>You have successfully authenticated into the secure area of the application.</p>
 
+        <a href="{{ url_for('admin.owner_panel') }}" class="btn-owner-panel">Owner Panel</a>
+        
         <a href="{{ url_for('auth.logout') }}" class="btn-logout">Sign Out</a>
     </div>
 </body>
