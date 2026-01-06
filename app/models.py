@@ -3,6 +3,9 @@ from datetime import datetime, timezone, timedelta
 import uuid
 import secrets
 from werkzeug.security import generate_password_hash, check_password_hash
+from enum import Enum
+
+UserRole = Enum('UserRole', [('REGULAR', 1), ('ADMIN', 2), ('OWNER', 3)])
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -13,6 +16,7 @@ class User(db.Model):
     is_activated = db.Column(db.Boolean, default=False)
     is_mfa_enabled = db.Column(db.Boolean, default=False)
     mfa_secret = db.Column(db.String(32), nullable=True)
+    role = db.Column(db.Enum(UserRole), default=UserRole.REGULAR, nullable=False)
 
 
     def __init__(self, email, username, password, phone_number=None):

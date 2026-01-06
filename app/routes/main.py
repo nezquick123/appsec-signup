@@ -11,7 +11,8 @@ def dashboard():
     return render_template(
         "dashboard.html", 
         username=getattr(request, "username", ""), 
-        is_mfa_enabled=user.is_mfa_enabled
+        is_mfa_enabled=user.is_mfa_enabled,
+        role = True if user.role == 'OWNER' else False
     )
 
 @main_bp.route("/success")
