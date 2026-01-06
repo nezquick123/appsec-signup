@@ -1,7 +1,7 @@
 import os
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, abort
 from ..models import db, Post, Comment, User
-from ..utils.security import token_required, get_logged_in_user
+from ..utils.security import token_required, get_logged_in_user, get_role
 from ..utils.file_handler import save_picture
 
 content_bp = Blueprint('content', __name__)
@@ -22,9 +22,10 @@ def post_detail(post_id):
         abort(404)
         
     current_user = get_logged_in_user()
+    role = get_role()
     
     # Pass current_user to the template
-    return render_template('post_detail.html', post=post, current_user=current_user)
+    return render_template('post_detail.html', post=post, current_user=current_user, role = True if current_user and (role == 'OWNER' or role == 'ADMIN') else False)
 
 @content_bp.route('/upload', methods=['GET', 'POST'])
 @token_required
@@ -68,8 +69,8 @@ def delete_post(post_id):
     if not post:
         abort(404)
         
-    # Authorization: Only owner can delete
-    if post.author_username != request.username:
+    # Authorization: Only owner can delete or role 'ADMIN', 'OWNER'
+    if post.author_username != request.username and User.query.filter_by(username=request.username).first().role not in ['ADMIN', 'OWNER']:
         flash("You are not authorized to delete this post.", "error")
         return redirect(url_for('content.post_detail', post_id=post.id))
 
@@ -103,4 +104,25 @@ def add_comment(post_id):
     db.session.add(comment)
     db.session.commit()
     flash('Comment added!', 'success')
+    return redirect(url_for('content.post_detail', post_id=post_id))
+
+@content_bp.route('/post/<post_id>/comment/<comment_id>/delete', methods=['POST'])
+@token_required
+def delete_comment(post_id, comment_id):
+    comment = db.session.get(Comment, comment_id)
+    if not comment:
+        abort(404)
+        
+    # Authorization: Only comment author or role 'ADMIN', 'OWNER' can delete
+    if comment.author_username != request.username and User.query.filter_by(username=request.username).first().role not in ['ADMIN', 'OWNER']:
+        flash("You are not authorized to delete this comment.", "error")
+        return redirect(url_for('content.post_detail', post_id=post_id))
+
+    try:
+        db.session.delete(comment)
+        db.session.commit()
+        flash('Comment deleted.', 'success')
+    except Exception as e:
+        flash('Error deleting comment.', 'error')
+        
     return redirect(url_for('content.post_detail', post_id=post_id))

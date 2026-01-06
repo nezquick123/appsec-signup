@@ -152,6 +152,25 @@ def get_logged_in_user():
         pass # Invalid or expired token
         
     return None
+
+def get_role():
+    """
+    Returns the username from the cookie if logged in, otherwise None.
+    Does not enforce login or redirect.
+    """
+    token = request.cookies.get("access_token")
+    if not token:
+        return None
+    
+    try:
+        payload = decode_jwt(token)
+        if payload.get("type") == "access":
+            return payload.get("role")
+    except Exception:
+        pass # Invalid or expired token
+        
+    return None
+
 def role_required(role: str):
     def decorator(f):
         @wraps(f)
