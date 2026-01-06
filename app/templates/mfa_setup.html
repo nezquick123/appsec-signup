@@ -155,7 +155,7 @@
         <p style="margin-bottom: 5px; font-size: 14px;">Or enter this secret manually:</p>
         <div class="secret-key">{{ secret }}</div>
 
-        <form method="POST" action="{{ url_for('mfa.mfa_enable') }}">
+        <form method="POST" action="{{ url_for('mfa_enable') }}">
              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <div class="form-group">
                 <input type="text" 

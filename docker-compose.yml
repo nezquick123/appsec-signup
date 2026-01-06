@@ -16,7 +16,8 @@ services:
       - APP_URL=${APP_URL:-http://localhost:5000}
       - FORCE_HTTPS=${FORCE_HTTPS:-false}
       - RECAPTCHA_PROJECT_ID=${RECAPTCHA_PROJECT_ID:-}
-    # volumes:
+    volumes:
+      - .:/app
     #   - ./localhost+1.pem:/app/certs/cert.pem:ro
     #   - ./localhost+1-key.pem:/app/certs/key.pem:ro
     # command: >
@@ -54,3 +55,4 @@ services:
 
 volumes:
   postgres_data:
+  uploaded_media:

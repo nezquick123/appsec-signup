@@ -3,6 +3,7 @@ import logging
 from flask import Flask
 from config import Config
 from .extensions import db, csrf
+from .routes.content import content_bp
 from .models import User, UserRole
 
 def create_app(config_class=Config):
@@ -28,6 +29,7 @@ def create_app(config_class=Config):
     app.register_blueprint(auth_bp)
     app.register_blueprint(mfa_bp)
     app.register_blueprint(main_bp)
+    app.register_blueprint(content_bp)
     app.register_blueprint(admin_bp)
 
     # Create DB Tables
