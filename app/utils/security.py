@@ -5,7 +5,7 @@ from datetime import datetime, timezone, timedelta
 from functools import wraps
 from flask import request, flash, redirect, url_for, current_app
 from google.cloud import recaptchaenterprise_v1
-from ..models import db, ActivationToken, PasswordResetToken, RefreshToken
+from ..models import db, ActivationToken, PasswordResetToken, RefreshToken, UserRole
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ def get_reset_url(token):
     return f"{base_url}/reset_password?token={token}"
 
 # --- JWT Helpers ---
-def create_access_token(email, username):
+def create_access_token(email, username, role):
     expire_min = current_app.config.get("ACCESS_TOKEN_EXPIRE_MINUTES", 15)
     secret = current_app.config.get("SECRET_KEY")
     now = datetime.now(timezone.utc)
@@ -70,7 +70,8 @@ def create_access_token(email, username):
         "username": username,
         "iat": int(now.timestamp()),
         "exp": int(exp.timestamp()),
-        "type": "access"
+        "type": "access",
+        "role": role
     }
     return jwt.encode(payload, secret, algorithm="HS256")
 
@@ -114,7 +115,7 @@ def token_required(f):
 
         if not token:
             flash("Authentication required.", "error")
-            return redirect(url_for("auth.login")) # Note blueprint prefix
+            return redirect(url_for("auth.login")) 
 
         try:
             payload = decode_jwt(token)
@@ -132,3 +133,46 @@ def token_required(f):
 
         return f(*args, **kwargs)
     return decorated
+
+def role_required(role: str):
+    def decorator(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            auth = request.headers.get("Authorization", "")
+            token = None
+            if auth.startswith("Bearer "):
+                token = auth.split(" ", 1)[1].strip()
+            if not token:
+                token = request.cookies.get("access_token")
+
+            if not token:
+                flash("Authentication required.", "error")
+                return redirect(url_for("auth.login")) 
+
+            try:
+                # Assuming decode_jwt is defined elsewhere
+                payload = decode_jwt(token)
+                if payload.get("type") != "access":
+                    flash("Invalid token type.", "error")
+                    return redirect(url_for("auth.login"))
+                
+                request.user_email = payload.get("sub")
+                request.username = payload.get("username")
+                request.user_role = payload.get("role")
+
+                # Note: Ensure your 'role' string and 'request.user_role' 
+                # are comparable (e.g., both strings or both integers)
+                if request.user_role < role:
+                    flash("Insufficient permissions.", "error")
+                    return redirect(url_for("main.dashboard"))
+                    
+            except jwt.ExpiredSignatureError:
+                flash("Session expired. Please log in again.", "error")
+                return redirect(url_for("auth.login"))
+            except jwt.InvalidTokenError:
+                flash("Invalid token. Please log in again.", "error")
+                return redirect(url_for("auth.login"))
+
+            return f(*args, **kwargs)
+        return decorated
+    return decorator
