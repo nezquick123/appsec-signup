@@ -187,7 +187,7 @@ def role_required(role: str):
                 return redirect(url_for("auth.login")) 
 
             try:
-                # Assuming decode_jwt is defined elsewhere
+               
                 payload = decode_jwt(token)
                 if payload.get("type") != "access":
                     flash("Invalid token type.", "error")
@@ -197,9 +197,9 @@ def role_required(role: str):
                 request.username = payload.get("username")
                 request.user_role = payload.get("role")
 
-                # Note: Ensure your 'role' string and 'request.user_role' 
-                # are comparable (e.g., both strings or both integers)
-                if request.user_role < role:
+                
+
+                if UserRole[request.user_role].value < UserRole[role].value:
                     flash("Insufficient permissions.", "error")
                     return redirect(url_for("main.dashboard"))
                     

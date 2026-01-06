@@ -99,6 +99,15 @@
             background-color: #667eea;
             color: white;
         }
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+        .flash-message {
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -108,7 +117,18 @@
             <a href="{{ url_for('content.upload') }}" class="btn">Upload New</a>
             <a href="{{ url_for('main.dashboard') }}" class="btn">Dashboard</a>
         </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message {{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
     </div>
+
 
     <div class="grid">
         {% for post in posts.items %}

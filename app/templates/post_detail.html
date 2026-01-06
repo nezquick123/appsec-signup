@@ -20,11 +20,20 @@
             border-radius: 4px;
             transition: background-color 0.3s, color 0.3s;
         }
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+        .flash-message {
+            padding: 12px 15px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <a href="{{ url_for('content.gallery') }}">&larr; Back to Gallery</a>
+        <a href="{{ url_for('content.gallery') }}">&larr; Back to Gallery</a> <br><br>
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 <div class="flash-messages">

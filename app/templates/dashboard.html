@@ -189,8 +189,9 @@
             <a href="{{ url_for('content.upload') }}" class="btn-action">Upload Content</a>
         </div>
 
+        {% if role %}
         <a href="{{ url_for('admin.owner_panel') }}" class="btn-owner-panel">Owner Panel</a>
-        
+        {% endif %}
         <a href="{{ url_for('auth.logout') }}" class="btn-logout">Sign Out</a>
     </div>
 </body>

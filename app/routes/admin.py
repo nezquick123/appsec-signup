@@ -11,7 +11,7 @@ admin_bp = Blueprint('admin', __name__)
 def owner_panel():
     # fetch all users email, username, role
     users = db.session.execute(db.select(User)).scalars().all()
-
+    
 
     return render_template(
         "owner_panel.html", 
