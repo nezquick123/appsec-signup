@@ -1,7 +1,7 @@
 import os
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, abort
 from ..models import UserRole, db, Post, Comment, User
-from ..utils.security import token_required, get_logged_in_user, get_role
+from ..utils.security import token_required, get_logged_in_user
 from ..utils.file_handler import save_picture
 
 content_bp = Blueprint('content', __name__)
@@ -22,10 +22,9 @@ def post_detail(post_id):
         abort(404)
         
     current_user = get_logged_in_user()
-    role = get_role()
-    
+
     # Pass current_user to the template
-    return render_template('post_detail.html', post=post, current_user=current_user, role = True if current_user and (role == 'OWNER' or role == 'ADMIN') else False)
+    return render_template('post_detail.html', post=post, current_user=current_user, role = True if current_user and User.query.filter_by(username=current_user).first().role  in [UserRole.OWNER, UserRole.ADMIN] else False)
 
 @content_bp.route('/upload', methods=['GET', 'POST'])
 @token_required

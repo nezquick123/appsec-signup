@@ -42,15 +42,6 @@ def change_role(email):
         user.role = new_role_enum
         db.session.commit()
 
-        # revoke session if exists
-        rt_db = RefreshToken.query.filter_by(email=user.email).first()
-        logger.info(f"Revoking refresh token for user {user.email} due to role change.")
-        if rt_db:
-            rt_db.revoked = True
-            db.session.add(rt_db)
-            db.session.commit()
-
-        
         flash(f"Successfully updated {user.username} to {new_role_name}.", "success")
         
     except KeyError:

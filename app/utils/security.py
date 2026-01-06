@@ -5,7 +5,7 @@ from datetime import datetime, timezone, timedelta
 from functools import wraps
 from flask import request, flash, redirect, url_for, current_app
 from google.cloud import recaptchaenterprise_v1
-from ..models import db, ActivationToken, PasswordResetToken, RefreshToken, UserRole
+from ..models import db, ActivationToken, PasswordResetToken, RefreshToken, UserRole, User
 
 logger = logging.getLogger(__name__)
 
@@ -71,7 +71,6 @@ def create_access_token(email, username, role):
         "iat": int(now.timestamp()),
         "exp": int(exp.timestamp()),
         "type": "access",
-        "role": role
     }
     return jwt.encode(payload, secret, algorithm="HS256")
 
@@ -117,24 +116,6 @@ def token_required(f):
             flash("Authentication required.", "error")
             return redirect(url_for("auth.login")) 
 
-        # check if refresh token is revoked
-        logger.info(f"Checking refresh token for revocation.")
-        if request.cookies.get("refresh_token"):
-            try:
-                rt_payload = decode_jwt(request.cookies.get("refresh_token"))
-                jti = rt_payload.get("jti")
-                rt_db = RefreshToken.query.filter_by(jti=jti).first()
-                logger.debug(f"Refresh token payload: {rt_db.revoked}")
-                if rt_db and rt_db.revoked:
-                   response = redirect(url_for("auth.login"))
-                   response.delete_cookie("access_token") # Force clear the stale token
-                   response.delete_cookie("refresh_token")
-                   flash("Your session has been updated. Please log in again.", "info")
-                   return response
-            except Exception as e:
-                logger.info(f"Error checking refresh token revocation: {e}")
-                pass # Ignore errors here
-
         try:
             payload = decode_jwt(token)
             if payload.get("type") != "access":
@@ -171,23 +152,6 @@ def get_logged_in_user():
         
     return None
 
-def get_role():
-    """
-    Returns the username from the cookie if logged in, otherwise None.
-    Does not enforce login or redirect.
-    """
-    token = request.cookies.get("access_token")
-    if not token:
-        return None
-    
-    try:
-        payload = decode_jwt(token)
-        if payload.get("type") == "access":
-            return payload.get("role")
-    except Exception:
-        pass # Invalid or expired token
-        
-    return None
 
 def role_required(role: str):
     def decorator(f):
@@ -203,23 +167,6 @@ def role_required(role: str):
             if not token:
                 flash("Authentication required.", "error")
                 return redirect(url_for("auth.login")) 
-                    # check if refresh token is revoked
-            # check if refresh token is revoked
-            logger.info(f"Checking refresh token for revocation.")
-            if request.cookies.get("refresh_token"):
-                try:
-                    rt_payload = decode_jwt(request.cookies.get("refresh_token"))
-                    jti = rt_payload.get("jti")
-                    rt_db = RefreshToken.query.filter_by(jti=jti).first()
-                    logger.info(f"Refresh token payload: {rt_db.revoked}")
-                    if rt_db and rt_db.revoked:
-                       response = redirect(url_for("auth.login"))
-                       response.delete_cookie("access_token") 
-                       response.delete_cookie("refresh_token")
-                       flash("Your session has been updated. Please log in again.", "info")
-                    return response
-                except Exception:
-                    pass # Ignore errors here
 
             try:
                
@@ -230,11 +177,10 @@ def role_required(role: str):
                 
                 request.user_email = payload.get("sub")
                 request.username = payload.get("username")
-                request.user_role = payload.get("role")
 
-                
+                user = User.query.filter_by(email=request.user_email).first()
 
-                if UserRole[request.user_role].value < UserRole[role].value:
+                if user.role.value < UserRole[role].value:
                     flash("Insufficient permissions.", "error")
                     return redirect(url_for("main.dashboard"))
                     
