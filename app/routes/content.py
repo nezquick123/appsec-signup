@@ -1,6 +1,6 @@
 import os
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, abort
-from ..models import db, Post, Comment, User
+from ..models import UserRole, db, Post, Comment, User
 from ..utils.security import token_required, get_logged_in_user, get_role
 from ..utils.file_handler import save_picture
 
@@ -70,7 +70,7 @@ def delete_post(post_id):
         abort(404)
         
     # Authorization: Only owner can delete or role 'ADMIN', 'OWNER'
-    if post.author_username != request.username and User.query.filter_by(username=request.username).first().role not in ['ADMIN', 'OWNER']:
+    if post.author_username != request.username and User.query.filter_by(username=request.username).first().role not in [UserRole.OWNER, UserRole.ADMIN]:
         flash("You are not authorized to delete this post.", "error")
         return redirect(url_for('content.post_detail', post_id=post.id))
 
@@ -114,7 +114,7 @@ def delete_comment(post_id, comment_id):
         abort(404)
         
     # Authorization: Only comment author or role 'ADMIN', 'OWNER' can delete
-    if comment.author_username != request.username and User.query.filter_by(username=request.username).first().role not in ['ADMIN', 'OWNER']:
+    if comment.author_username != request.username and User.query.filter_by(username=request.username).first().role not in [UserRole.OWNER, UserRole.ADMIN]:
         flash("You are not authorized to delete this comment.", "error")
         return redirect(url_for('content.post_detail', post_id=post_id))
 
