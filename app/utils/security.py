@@ -3,7 +3,7 @@ import logging
 import uuid
 from datetime import datetime, timezone, timedelta
 from functools import wraps
-from flask import request, flash, redirect, url_for, current_app
+from flask import request, flash, redirect, url_for, current_app, session
 from google.cloud import recaptchaenterprise_v1
 from ..models import db, ActivationToken, PasswordResetToken, RefreshToken, UserRole, User
 
@@ -102,37 +102,6 @@ def decode_jwt(token, verify_exp=True):
     options = {"verify_exp": verify_exp}
     return jwt.decode(token, secret, algorithms=["HS256"], options=options)
 
-def token_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        auth = request.headers.get("Authorization", "")
-        token = None
-        if auth.startswith("Bearer "):
-            token = auth.split(" ", 1)[1].strip()
-        if not token:
-            token = request.cookies.get("access_token")
-
-        if not token:
-            flash("Authentication required.", "error")
-            return redirect(url_for("auth.login")) 
-
-        try:
-            payload = decode_jwt(token)
-            if payload.get("type") != "access":
-                flash("Invalid token type.", "error")
-                return redirect(url_for("auth.login"))
-            request.user_email = payload.get("sub")
-            request.username = payload.get("username")
-        except jwt.ExpiredSignatureError:
-            flash("Session expired. Please log in again.", "error")
-            return redirect(url_for("auth.login"))
-        except jwt.InvalidTokenError:
-            flash("Invalid token. Please log in again.", "error")
-            return redirect(url_for("auth.login"))
-
-        return f(*args, **kwargs)
-    return decorated
-
 
 def get_logged_in_user():
     """
@@ -152,6 +121,8 @@ def get_logged_in_user():
         
     return None
 
+def token_required(f):
+    return role_required("REGULAR")(f)
 
 def role_required(role: str):
     def decorator(f):
@@ -181,6 +152,11 @@ def role_required(role: str):
                 user = User.query.filter_by(email=request.user_email).first()
 
                 if user.role.value < UserRole[role].value:
+                    if user.role.value == UserRole["BLOCKED"].value:
+                        session.pop('_flashes', None)
+                        flash("Your account is blocked. Contact support.", "error")
+                        return redirect(url_for("auth.login"))
+                    
                     flash("Insufficient permissions.", "error")
                     return redirect(url_for("main.dashboard"))
                     

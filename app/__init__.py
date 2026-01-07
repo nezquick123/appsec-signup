@@ -61,6 +61,13 @@ def create_app(config_class=Config):
             db.session.add(owner_user)
             db.session.commit()
             logger.info("Owner account created successfully.")
+
+            #clear environment variables
+            import os
+            os.environ["OWNER_EMAIL"] = ""
+            os.environ["OWNER_PASSWORD"] = ""
+            
         initialize_owner_account()
+    
 
     return app

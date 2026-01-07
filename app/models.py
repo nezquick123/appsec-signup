@@ -5,7 +5,7 @@ import secrets
 from werkzeug.security import generate_password_hash, check_password_hash
 from enum import Enum
 
-UserRole = Enum('UserRole', [('REGULAR', 1), ('ADMIN', 2), ('OWNER', 3)])
+UserRole = Enum('UserRole', [('BLOCKED', 0), ('REGULAR', 1), ('ADMIN', 2), ('OWNER', 3)])
 
 class User(db.Model):
     __tablename__ = 'users'
