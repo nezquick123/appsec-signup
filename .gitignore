@@ -33,3 +33,6 @@ htmlcov/
 # SQLite databases
 *.db
 instance/
+
+#gallery
+app/static/uploads/*

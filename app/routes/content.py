@@ -11,9 +11,18 @@ content_bp = Blueprint('content', __name__)
 def gallery():
     """Public gallery viewable by anyone."""
     page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('q', '') # Get search query
+    query = Post.query
+
+    if search_query:
+        # Filter by title containing the search query (case-insensitive)
+        query = query.filter(Post.title.ilike(f'%{search_query}%'))
+
     # Get posts ordered by newest first
-    posts = Post.query.order_by(Post.created_at.desc()).paginate(page=page, per_page=9)
-    return render_template('gallery.html', posts=posts)
+    posts = query.order_by(Post.created_at.desc()).paginate(page=page, per_page=9)
+    
+    # Pass search_query to the template to preserve input value
+    return render_template('gallery.html', posts=posts, search_query=search_query)
 
 @content_bp.route('/post/<post_id>')
 def post_detail(post_id):

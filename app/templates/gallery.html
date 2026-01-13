@@ -30,6 +30,8 @@
         .nav h2 {
             margin: 0;
             color: #667eea;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            flex-wrap: wrap; /* Allows wrapping on smaller screens */
         }
 
         /* Button Styling consistent with Detail page */
@@ -48,6 +50,43 @@
         .btn:hover {
             background: #667eea;
             color: white;
+        }
+
+        /* Search Bar Styling */
+        .search-form {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        
+        .search-input {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px 0 0 4px;
+            border-right: none;
+            font-size: 0.9em;
+            outline: none;
+            width: 200px;
+            transition: border-color 0.3s;
+        }
+        
+        .search-input:focus {
+            border-color: #667eea;
+        }
+
+        .search-btn {
+            padding: 8px 16px;
+            background: #667eea;
+            color: white;
+            border: 1px solid #667eea;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.3s;
+        }
+
+        .search-btn:hover {
+            background: #5a67d8;
         }
 
         /* Grid and Card Layout */
@@ -111,6 +150,8 @@
 
         .flash-messages {
             margin-bottom: 20px;
+            width: 100%; /* Ensure flash messages take full width if they wrap */
+            margin-top: 10px;
         }
 
         .flash-message {
@@ -125,6 +166,12 @@
 <body>
     <div class="nav">
         <h2>Gallery</h2>
+
+        <form action="{{ url_for('content.gallery') }}" method="get" class="search-form">
+            <input type="text" name="q" class="search-input" placeholder="Search by title..." value="{{ search_query|default('') }}">
+            <button type="submit" class="search-btn">Search</button>
+        </form>
+
         <div>
             <a href="{{ url_for('content.upload') }}" class="btn">Upload New</a>
             <a href="{{ url_for('main.dashboard') }}" class="btn">Dashboard</a>
