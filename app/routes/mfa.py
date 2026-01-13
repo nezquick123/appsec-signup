@@ -60,7 +60,7 @@ def verify_2fa_login():
         totp = pyotp.TOTP(user.mfa_secret)
         if totp.verify(code):
             session.pop('2fa_user_email', None)
-            access_token = create_access_token(user.email, user.username)
+            access_token = create_access_token(user.email, user.username, user.role.name)
             refresh_token, _ = create_refresh_token(user.email)
 
             resp = make_response(redirect(url_for("main.dashboard")))

@@ -1,0 +1,414 @@
+/* =========================================
+   1. Global Resets & Variables
+   ========================================= */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    background: #667eea;
+    color: #333;
+    min-height: 100vh;
+}
+
+/* =========================================
+   2. Layout Utilities
+   ========================================= */
+
+/* Use this class on the <body> of Login, Signup, Dashboard, MFA, Owner Panel */
+.body-centered {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+/* Use this class on the <body> of Gallery and Post Detail */
+.body-scroll {
+    padding: 20px;
+}
+
+/* =========================================
+   3. Containers & Cards
+   ========================================= */
+.container {
+    background: white;
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* Width Modifiers */
+.container-sm { max-width: 450px; } /* Login, MFA, Dashboard */
+.container-md { max-width: 800px; } /* Post Detail */
+.container-lg { max-width: 900px; } /* Owner Panel */
+
+/* Gallery Specific Layouts */
+.nav {
+    max-width: 1200px;
+    margin: 0 auto 20px auto;
+    padding: 20px 30px;
+    background: white;
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 25px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.card {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+}
+.card:hover { transform: translateY(-5px); }
+
+.card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-bottom: 1px solid #eee;
+}
+
+.card-body { padding: 20px; }
+.card-body h3 { margin: 0 0 10px 0; font-size: 1.25em; }
+.card-body p { color: #666; font-size: 0.9em; margin-bottom: 20px; }
+
+/* =========================================
+   4. Typography
+   ========================================= */
+h1 {
+    color: #333;
+    margin-bottom: 20px; /* Unified margin */
+    font-weight: 600;
+    text-align: center;
+}
+
+h2 {
+    color: #555;
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 30px;
+    text-align: center; /* Default center, override if needed */
+}
+
+/* Gallery Nav Header override */
+.nav h2 {
+    margin: 0;
+    color: #667eea;
+    box-shadow: none; 
+    text-align: left;
+}
+
+p {
+    color: #666;
+    margin-bottom: 20px;
+    line-height: 1.6;
+}
+
+/* =========================================
+   5. Forms & Inputs
+   ========================================= */
+.form-group { margin-bottom: 20px; }
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    color: #555;
+    font-weight: 500;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"] {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #e1e1e1;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: border-color 0.3s;
+    box-sizing: border-box;
+}
+
+input:focus, textarea:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+/* Centered inputs for MFA */
+.input-code {
+    text-align: center;
+    letter-spacing: 4px;
+    font-weight: 600;
+}
+
+textarea {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid #e1e1e1;
+    border-radius: 6px;
+    font-size: 14px;
+    resize: vertical;
+}
+
+/* =========================================
+   6. Buttons & Links
+   ========================================= */
+button, 
+.btn, 
+input[type="submit"],
+.btn-action,
+.btn-logout,
+.btn-owner-panel,
+.btn-danger,
+.btn-update {
+    display: inline-block;
+    padding: 14px;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.2s, box-shadow 0.2s, background 0.3s;
+    text-align: center;
+}
+
+/* Primary Button Style (Gradient Purple) */
+button, input[type="submit"], .btn-action, .btn-update {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    width: 100%; /* Default width, override where needed */
+}
+
+button:hover, input[type="submit"]:hover, .btn-action:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    opacity: 0.9;
+}
+
+/* Secondary / Outline Button */
+.btn-secondary {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 12px;
+    margin-top: 15px;
+    background: transparent;
+    color: #667eea;
+    border: 2px solid #667eea;
+    border-radius: 6px;
+    font-weight: 600;
+    text-decoration: none;
+}
+.btn-secondary:hover { background: #667eea; color: white; }
+
+/* Danger Button (Red) */
+.btn-danger, .btn-logout {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    width: 100%;
+}
+.btn-danger:hover, .btn-logout:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(220, 38, 38, 0.4);
+}
+
+/* Success Button (Green - Owner Panel) */
+.btn-owner-panel {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    width: 100%;
+    margin-bottom: 15px;
+}
+.btn-owner-panel:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(5, 150, 105, 0.4);
+}
+
+/* Small inline buttons (Gallery/Comments) */
+.btn-sm, .view-link {
+    padding: 6px 12px;
+    font-size: 0.9em;
+    width: auto;
+    border: 1px solid #667eea;
+    background: transparent;
+    color: #667eea;
+    border-radius: 4px;
+}
+.btn-sm:hover, .view-link:hover {
+    background: #667eea;
+    color: white;
+}
+
+/* Navigation Links (Footer) */
+.footer-links { text-align: center; margin-top: 20px; }
+.footer-links a, .back-link, .btn-cancel {
+    color: #667eea;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+}
+.footer-links a:hover, .back-link:hover { text-decoration: underline; }
+
+/* =========================================
+   7. Specific Components
+   ========================================= */
+
+/* Flash Messages */
+.flash-messages { margin-bottom: 20px; width: 100%; }
+.flash-message {
+    padding: 12px 15px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    background-color: #dbeafe; /* Default info */
+    color: #1e40af;
+    border: 1px solid #bfdbfe;
+}
+.flash-message.success { background-color: #d1fae5; color: #059669; border: 1px solid #a7f3d0; }
+.flash-message.error { background-color: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+
+/* Owner Panel Table */
+.user-table-container { overflow-x: auto; margin-bottom: 30px; }
+table { width: 100%; border-collapse: collapse; text-align: left; }
+th {
+    background-color: #f8fafc;
+    color: #888;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px;
+    border-bottom: 2px solid #e2e8f0;
+}
+td { padding: 15px 12px; border-bottom: 1px solid #e2e8f0; color: #333; font-size: 14px; }
+tr:hover { background-color: #f1f5f9; }
+
+/* Role Badges */
+.role-badge {
+    display: inline-block; padding: 4px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+}
+.role-regular { background: #e2e8f0; color: #475569; }
+.role-admin { background: #dbeafe; color: #2563eb; }
+.role-owner { background: #fef3c7; color: #d97706; }
+.role-blocked { background: #fee2e2; color: #dc2626; }
+
+/* Dashboard Avatar & Info */
+.avatar {
+    width: 80px; height: 80px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+    margin: 0 auto 20px;
+    color: white; font-size: 32px; font-weight: bold; text-transform: uppercase;
+}
+.icon { /* For activation success/fail icons */
+    width: 80px; height: 80px;
+    border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+    margin: 0 auto 20px;
+}
+.icon.success { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+.icon.error { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+.icon svg { width: 40px; height: 40px; fill: white; }
+
+.info-box {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 25px;
+    text-align: left;
+}
+.info-label { font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.info-value { color: #333; font-weight: 500; }
+
+/* Comments */
+.comments { margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; }
+.comment { background: #f8f9fa; padding: 10px; border-radius: 6px; margin-bottom: 10px; }
+
+/* Search Form (Gallery) */
+.search-form { display: flex; align-items: center; margin: 10px 0; }
+.search-input {
+    padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px 0 0 4px;
+    border-right: none; font-size: 0.9em; outline: none; width: 200px;
+}
+.search-btn {
+    padding: 8px 16px; background: #667eea; color: white;
+    border: 1px solid #667eea; border-radius: 0 4px 4px 0;
+    cursor: pointer; font-size: 0.9em; width: auto;
+}
+
+/* Password Strength & Misc */
+.password-strength { margin-top: 8px; }
+.strength-bar { height: 4px; background-color: #e1e1e1; border-radius: 2px; overflow: hidden; }
+.strength-fill { height: 100%; transition: width 0.3s, background-color 0.3s; width: 0%; }
+.strength-weak { background-color: #ef4444; }
+.strength-fair { background-color: #f97316; }
+.strength-good { background-color: #eab308; }
+.strength-strong { background-color: #22c55e; }
+
+.password-requirements { font-size: 12px; color: #666; margin-top: 8px; padding-left: 0; list-style: none; }
+.password-requirements li { padding: 2px 0; padding-left: 20px; position: relative; }
+.password-requirements li::before { content: "✗"; position: absolute; left: 0; color: #ef4444; }
+.password-requirements li.valid::before { content: "✓"; color: #22c55e; }
+
+.qr-container { display: flex; justify-content: center; margin: 20px 0; }
+.qr-container img { max-width: 200px; border: 1px solid #e1e1e1; border-radius: 6px; padding: 10px; }
+.secret-key {
+    background: #f8fafc; padding: 10px; border-radius: 6px; text-align: center;
+    font-family: monospace; font-size: 16px; margin-bottom: 20px;
+    border: 1px dashed #cbd5e1; word-break: break-all;
+}
+
+/* Dashboard Button Fixes */
+.btn-action, 
+.btn-logout,
+.btn-owner-panel {
+    display: block;            /* Makes the button take the full line (fixes overlap) */
+    width: 100%;               /* Ensures full width */
+    padding: 12px;
+    margin-bottom: 15px;       /* Adds space between buttons */
+    text-align: center;
+    text-decoration: none;
+    border-radius: 6px;
+    color: white !important;   /* Forces text to be white */
+    font-weight: 600;
+    box-shadow: 0 4px 6px rgba(50, 50, 93, 0.11), 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Purple Gradient for Actions */
+.btn-action {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+}
+
+/* Red Gradient for Logout */
+.btn-logout {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    border: none;
+}
+
+/* Hover Effects */
+.btn-action:hover, .btn-logout:hover {
+    transform: translateY(-2px);
+    opacity: 0.9;
+    box-shadow: 0 7px 14px rgba(50, 50, 93, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08);
+}
