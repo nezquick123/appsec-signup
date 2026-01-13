@@ -1,5 +1,6 @@
+from io import BytesIO
 import os
-from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app, abort
+from flask import Blueprint, render_template, request, flash, redirect, send_file, url_for, current_app, abort
 from ..models import UserRole, db, Post, Comment, User
 from ..utils.security import token_required, get_logged_in_user
 from ..utils.file_handler import save_picture
@@ -54,21 +55,41 @@ def upload():
 
         if file:
             try:
-                filename = save_picture(file)
+                file_data = file.read()
+                
                 post = Post(
                     title=title,
-                    filename=filename,
+                    content=file_data,
                     author_username=request.username,
                     description=description
                 )
+                
                 db.session.add(post)
                 db.session.commit()
+                
                 flash('Image uploaded successfully!', 'success')
                 return redirect(url_for('content.gallery'))
-            except ValueError as e:
-                flash(str(e), 'error')
+                
+            except Exception as e:
+                db.session.rollback()
+                flash(f'Error uploading file: {str(e)}', 'error')
                 
     return render_template('upload.html')
+
+@content_bp.route('/post/image/<post_id>')
+def serve_image(post_id):
+    post = Post.query.get_or_404(post_id)
+    
+    if not post.content:
+        abort(404)
+
+    # Convert binary data to a file-like object
+    return send_file(
+        BytesIO(post.content),
+        mimetype='image/jpeg',  # Defaults to jpeg, browsers usually auto-detect if it's png
+        as_attachment=False,
+        download_name=f"{post.title}.jpg"
+    )
 
 @content_bp.route('/post/<post_id>/delete', methods=['POST'])
 @token_required
@@ -83,11 +104,6 @@ def delete_post(post_id):
         return redirect(url_for('content.post_detail', post_id=post.id))
 
     try:
-        # Remove file from disk
-        file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], post.filename)
-        if os.path.exists(file_path):
-            os.remove(file_path)
-            
         db.session.delete(post)
         db.session.commit()
         flash('Post deleted.', 'success')

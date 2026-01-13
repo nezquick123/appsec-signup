@@ -177,6 +177,7 @@
                         <td>
                             <form action="{{ url_for('admin.change_role', email=user.email) }}" method="POST" style="display: flex; align-items: center;">
                                 <select name="new_role" class="role-select">
+                                    <option value="BLOCKED" {{ 'selected' if user.role.name == 'BLOCKED' }}>Blocked</option>
                                     <option value="REGULAR" {{ 'selected' if user.role.name == 'REGULAR' }}>Regular</option>
                                     <option value="ADMIN" {{ 'selected' if user.role.name == 'ADMIN' }}>Admin</option>
                                     <option value="OWNER" {{ 'selected' if user.role.name == 'OWNER' }}>Owner</option>
