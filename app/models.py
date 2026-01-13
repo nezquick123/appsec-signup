@@ -100,7 +100,7 @@ class Post(db.Model):
     id = db.Column(db.String(36), primary_key=True)  # UUID
     title = db.Column(db.String(255), nullable=False)
     description = db.Column(db.Text, nullable=True)
-    filename = db.Column(db.String(255), nullable=False) # Stored on disk
+    content = db.Column(db.LargeBinary, nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     
     # Foreign Key to User
@@ -110,10 +110,10 @@ class Post(db.Model):
     author = db.relationship('User', backref=db.backref('posts', lazy=True))
     comments = db.relationship('Comment', backref='post', cascade="all, delete-orphan", lazy=True)
 
-    def __init__(self, title, filename, author_username, description=None):
+    def __init__(self, title, content, author_username, description=None):
         self.id = str(uuid.uuid4())
         self.title = title
-        self.filename = filename
+        self.content = content
         self.author_username = author_username
         self.description = description
 

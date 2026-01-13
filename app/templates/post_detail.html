@@ -47,7 +47,7 @@
         <h1>{{ post.title }}</h1>
         <div class="meta">Posted by {{ post.author_username }} on {{ post.created_at.strftime('%Y-%m-%d') }}</div>
         
-        <img src="{{ url_for('static', filename='uploads/' + post.filename) }}" alt="{{ post.title }}">
+        <img src="{{ url_for('content.serve_image', post_id=post.id ) }}" alt="{{ post.title }}">
         <p>{{ post.description }}</p>
 
         {% if current_user and (current_user == post.author_username or role) %}

@@ -1,39 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Gallery</title>
     <style>
         /* Unified Global Style */
-        body { 
-            font-family: sans-serif; 
-            background: #667eea; 
-            margin: 0; 
-            padding: 20px; 
+        body {
+            font-family: sans-serif;
+            background: #667eea;
+            margin: 0;
+            padding: 20px;
             color: #333;
         }
 
         /* Navigation Styling */
-        .nav { 
+        .nav {
             max-width: 1200px;
             margin: 0 auto 20px auto;
-            padding: 20px 30px; 
-            background: white; 
+            padding: 20px 30px;
+            background: white;
             border-radius: 10px;
-            display: flex; 
-            justify-content: space-between; 
+            display: flex;
+            justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
-        
-        .nav h2 { margin: 0; color: #667eea; }
+
+        .nav h2 {
+            margin: 0;
+            color: #667eea;
+        }
 
         /* Button Styling consistent with Detail page */
-        .btn { 
-            padding: 8px 16px; 
-            border-radius: 4px; 
-            text-decoration: none; 
-            color: #667eea; 
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #667eea;
             border: 1px solid #667eea;
             background: transparent;
             transition: all 0.3s ease;
@@ -47,19 +51,19 @@
         }
 
         /* Grid and Card Layout */
-        .grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); 
-            gap: 25px; 
-            max-width: 1200px; 
-            margin: 0 auto; 
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
-        .card { 
-            background: white; 
-            border-radius: 10px; 
-            overflow: hidden; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        .card {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             transition: transform 0.2s;
         }
 
@@ -67,21 +71,26 @@
             transform: translateY(-5px);
         }
 
-        .card img { 
-            width: 100%; 
-            height: 200px; 
-            object-fit: cover; 
+        .card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
             border-bottom: 1px solid #eee;
         }
 
-        .card-body { padding: 20px; }
-        
-        .card-body h3 { margin: 0 0 10px 0; font-size: 1.25em; }
-        
-        .card-body p { 
-            color: #666; 
-            font-size: 0.9em; 
-            margin-bottom: 20px; 
+        .card-body {
+            padding: 20px;
+        }
+
+        .card-body h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.25em;
+        }
+
+        .card-body p {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 20px;
         }
 
         /* Detail Link Button */
@@ -99,9 +108,11 @@
             background-color: #667eea;
             color: white;
         }
+
         .flash-messages {
             margin-bottom: 20px;
         }
+
         .flash-message {
             padding: 12px 15px;
             border-radius: 6px;
@@ -110,6 +121,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="nav">
         <h2>Gallery</h2>
@@ -117,15 +129,15 @@
             <a href="{{ url_for('content.upload') }}" class="btn">Upload New</a>
             <a href="{{ url_for('main.dashboard') }}" class="btn">Dashboard</a>
         </div>
-        
+
         {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-messages">
-                    {% for category, message in messages %}
-                        <div class="flash-message {{ category }}">{{ message }}</div>
-                    {% endfor %}
-                </div>
-            {% endif %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+            <div class="flash-message {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% endwith %}
     </div>
 
@@ -133,7 +145,8 @@
     <div class="grid">
         {% for post in posts.items %}
         <div class="card">
-            <img src="{{ url_for('static', filename='uploads/' + post.filename) }}" alt="{{ post.title }}">
+            <img src="{{ url_for('content.serve_image', post_id=post.id) }}" alt="{{ post.title }}">
+
             <div class="card-body">
                 <h3>{{ post.title }}</h3>
                 <p>By <strong>{{ post.author_username }}</strong></p>
@@ -143,4 +156,5 @@
         {% endfor %}
     </div>
 </body>
+
 </html>
