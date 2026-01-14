@@ -2,6 +2,12 @@
 
 A secure Dockerized Flask application for user registration with email verification, advanced password policies, and CAPTCHA protection.
 
+## How to run
+
+1. Copy `.env.template` to `.env`
+
+2. Execute `docker compose up`
+
 ## Features
 
 ### Functional Requirements
